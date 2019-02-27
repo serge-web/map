@@ -98,7 +98,6 @@ function ready(error, data,ship_data){
         .attr("y",(height/2)+35)
         .attr("text-anchor","middle");
 
-    d3.select("#hex_" + ship_data.units[0].moves[0]).attr("fill","red").attr("opacity","0.2");
 
     var map_svg = d3.select(".hex_svg");
 
@@ -120,7 +119,7 @@ function ready(error, data,ship_data){
         .attr("id",function(d,i){return "map_icon_" + i})
         .attr('font-size', hexRadius + 'px')
         .attr("fill",ship_data.Force_Colour)
-        .attr("opacity","0.3")
+        .attr("opacity",0)
         .text(d => icons[d.vessel_type])
         .attr("x",function(d,i){
           var my_points = points.filter(f => f[5] == d.moves[0]);
@@ -149,6 +148,7 @@ function ready(error, data,ship_data){
     d3.select("#moves").text(d.total_moves + "/" + total_moves);
 
     d3.selectAll(".move_panel").attr("visibility","visible");
+    d3.select("#hex_" + d.moves[0]).attr("fill","red").attr("opacity","0.2");
   }
 
   function draw_move_panel(svg,x,p_width,p_height){
