@@ -2,6 +2,10 @@ var icons = {"helicopter":'\uf533',"ship":'\uf21a'};
 var hexRadius = 0;
 var points = [];
 var total_moves = 18;
+var current_unit = 0;
+var current_hex_column = 0;
+var current_hex_row = 0;
+var moving = false;
 
 d3.queue()
     .defer(d3.csv,"data/hex_data.csv")
@@ -9,6 +13,7 @@ d3.queue()
     .await(ready)
 //most of this based on https://www.visualcinnamon.com/2013/07/self-organizing-maps-creating-hexagonal.html
 function ready(error, data,ship_data){
+
 
   var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
   //select div
@@ -116,15 +121,16 @@ function ready(error, data,ship_data){
     my_group = my_group.merge(enter);
 
     my_group.select(".unit_map_icon")
+        .attr("pointer-events","none")
         .attr("id",function(d,i){return "map_icon_" + i})
         .attr('font-size', hexRadius + 'px')
         .attr("fill",ship_data.Force_Colour)
         .attr("opacity",0)
         .text(d => icons[d.vessel_type])
         .attr("x",function(d,i){
-          var my_points = points.filter(f => f[5] == d.moves[0]);
+          var my_points = points.filter(f => f[5] == d.start_position);
           d.x = my_points[0][0];
-          d.y = my_points[0][1] + (hexRadius/2);
+          d.y = my_points[0][1] + (hexRadius/3);
           return d.x})
         .attr("y",d => d.y)
         .attr("transform","translate(" + margin + "," + margin + ")")
@@ -149,6 +155,10 @@ function ready(error, data,ship_data){
 
     d3.selectAll(".move_panel").attr("visibility","visible");
     d3.select("#hex_" + d.moves[0]).attr("fill","red").attr("opacity","0.2");
+    current_unit = i;
+    current_hex_column = +d.start_position.split("-")[0];
+    current_hex_row = +d.start_position.split("-")[1];
+    moving = true;
   }
 
   function draw_move_panel(svg,x,p_width,p_height){
@@ -169,6 +179,9 @@ function ready(error, data,ship_data){
 
     add_rect(svg,80,25,x+p_width-180,p_height-5,"move_panel");
     add_text(svg,x+p_width-140,p_height+12.5,"middle","SUBMIT","move_panel")
+
+    add_rect(svg,120,25,x+p_width-310,p_height-5,"move_panel");
+    add_text(svg,x+p_width-250,p_height+12.5,"middle","CHANGE SPEED","move_panel")
 
     add_text(svg,x+p_width-90,margin+65,"middle","0/" + total_moves,"move_panel","moves","70px")
 
@@ -235,13 +248,55 @@ function ready(error, data,ship_data){
         .attr("stroke", "white")
         .attr("stroke-width", "1px")
         .attr("transform","translate(" + margin + "," + margin + ")")
-        .attr("fill", function(d){return colors(+d[0][2])} )
+        .attr("fill", function(d){return colors(+d[0][2])})
+        .on("click",function(d){
+          if(moving == true){
+            var co_ords = this.id.split("_")[1]
+            var this_column = +co_ords.split("-")[0];
+            var this_row = +co_ords.split("-")[1];
+
+            if(check_adjacent(this_row,this_column) === true){
+              new_move(ship_data.units[current_unit],co_ords,this_column,this_row,this)
+            } else {
+              console.log('not adjacent')
+            }
+
+          }
+
+        })
 
   }
 
 
 };
 
+
+function new_move(my_data,co_ords,column,row,my_object){
+
+  var new_move_count = my_data.total_moves + my_data.current_hex_speed;
+  if(new_move_count <= total_moves){
+    d3.select(my_object).attr("fill","red").attr("opacity","0.2");
+    my_data.moves.push(co_ords);
+    current_hex_column = column;
+    current_hex_row = row;
+    my_data.total_moves += my_data.current_hex_speed;
+    d3.select("#moves").text(my_data.total_moves + "/" + total_moves);
+  }
+
+}
+
+function check_adjacent(row,column){
+
+  var adjacent = true;
+
+  if(row > (current_hex_row+1) | row < (current_hex_row-1)){
+    adjacent = false;
+  } else if (column > (current_hex_column+1) || column < (current_hex_column-1)){
+    adjacent = false;
+  }
+  return adjacent;
+
+}
 function add_rect(my_svg,r_width,r_height,x,y,my_class){
 
   my_svg.append("rect")
