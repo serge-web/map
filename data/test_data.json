@@ -1,0 +1,24 @@
+{
+    "Force": "blue_1",
+    "Force_Colour": "blue",
+    "task_number": 0,
+    "units": [{
+        "name": "core_group",
+        "vessel_count": 10,
+        "vessel_type": "ship",
+        "moves": ["27-17"],
+        "move_history": [],
+        "current_hex_speed": 1,
+        "total_moves": 0
+    },
+        {
+            "name": "sub_group",
+            "vessel_count": 1,
+            "vessel_type": "helicopter",
+            "moves": ["27-17"],
+            "move_history": [],
+            "current_hex_speed": 4,
+            "total_moves": 0
+        }
+    ]
+}

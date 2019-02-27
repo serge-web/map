@@ -1,0 +1,34 @@
+body{
+  font-family:  Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+}
+table {
+  width: 100%;
+}
+
+td {
+  width: 50vw;
+  vertical-align: top;
+  text-align: left;
+}
+#test_hex{
+  width: 100%;
+  font-size: 14px;
+  text-align: center;
+  height: 80vh;
+}
+
+#test_ships{
+  width: 100%;
+  font-size: 14px;
+  text-align: center;
+  height: 20vh;
+}
+
+.mouse_path{
+  stroke: red;
+  stroke-width: 3px;
+  fill: transparent;
+}
