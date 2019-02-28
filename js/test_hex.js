@@ -104,7 +104,7 @@ function ready(error, data,ship_data){
         .attr("text-anchor","middle");
 
 
-    var map_svg = d3.select(".hex_svg");
+    var map_svg = d3.select(".hex_svg").select(".icon_group");
 
     var my_group = map_svg.selectAll(".unit_map_group").data(ship_data.units);
     //exit, remove
@@ -115,10 +115,18 @@ function ready(error, data,ship_data){
 
 
     //append path to new group
+    enter.append("path").attr("class","unit_map_path")
     enter.append("text").attr("class","unit_map_icon fa");  //outline rect
 
     //merge and remove
     my_group = my_group.merge(enter);
+
+    my_group.select(".unit_map_path")
+            .attr("id",function(d,i){return "map_path_" + i})
+            .attr("stroke",ship_data.Force_Colour)
+            .attr("stroke-width","0.5px")
+            .attr("fill","transparent")
+            .attr("transform","translate(" + margin + "," + margin + ")")
 
     my_group.select(".unit_map_icon")
         .attr("pointer-events","none")
@@ -128,37 +136,81 @@ function ready(error, data,ship_data){
         .attr("opacity",0)
         .text(d => icons[d.vessel_type])
         .attr("x",function(d,i){
-          var my_points = points.filter(f => f[5] == d.start_position);
+          var my_points = get_points(d.start_position);
           d.x = my_points[0][0];
           d.y = my_points[0][1] + (hexRadius/3);
+          d.path_moves.push([d.x,d.y]);
           return d.x})
         .attr("y",d => d.y)
         .attr("transform","translate(" + margin + "," + margin + ")")
 
   };
 
+
   function select_unit_icon(d,i){
-    //return state of all icons
-    d3.selectAll(".unit_rect").attr("fill","white");
-    d3.selectAll(".unit_icon").attr("fill","grey");
-    d3.selectAll(".unit_map_icon").attr("fill",ship_data.Force_Colour).attr("opacity",0);
-    //select current
-    d3.select(this).attr("fill","#F0F0F0");
-    d3.select("#panel_icon_" + i).attr("fill",ship_data.Force_Colour).attr("opacity",1);
-    d3.select("#map_icon_" + i).attr("fill",ship_data.Force_Colour).attr("opacity",1);
+    if(ship_data.units[current_unit].total_moves > 0  && ship_data.units[current_unit].submitted === false){
+      alert("You cannot switch groups until you've completed or cancelled your moves.")
+    } else {
+      //return state of all icons
+      d3.selectAll(".unit_rect").attr("fill","white");
+      d3.selectAll(".unit_icon").attr("fill","grey");
+      d3.selectAll(".unit_map_icon").attr("fill",ship_data.Force_Colour).attr("opacity",0);
+      d3.selectAll(".unit_map_path").attr("opacity",0)
+      //select current
+      d3.select(this).attr("fill","#F0F0F0");
+      var my_colour = ship_data.Force_Colour;
+      d3.select("#submit_text").attr("opacity",1);
+      if(d.submitted == true){
+        my_colour = "purple"
+        d3.select("#submit_text").attr("opacity",0.2);
+      }
+      d3.select("#panel_icon_" + i).attr("fill",my_colour).attr("opacity",1);
+      d3.select("#map_icon_" + i).attr("fill",my_colour).attr("opacity",1);
+      d3.select("#map_path_" + i).attr("opacity",1);
 
-    d3.select("#group_name").text(d.name);
-    d3.select("#vessel_count").text(d.vessel_count);
-    d3.select("#vessel_type").text(d.vessel_type);
-    d3.select("#hex_speed").text(d.current_hex_speed)
-    d3.select("#moves").text(d.total_moves + "/" + total_moves);
 
-    d3.selectAll(".move_panel").attr("visibility","visible");
-    d3.select("#hex_" + d.moves[0]).attr("fill","red").attr("opacity","0.2");
-    current_unit = i;
-    current_hex_column = +d.start_position.split("-")[0];
-    current_hex_row = +d.start_position.split("-")[1];
-    moving = true;
+      d3.select("#group_name").text(d.name);
+      d3.select("#vessel_count").text(d.vessel_count);
+      d3.select("#vessel_type").text(d.vessel_type);
+      d3.select("#hex_speed").text(d.current_hex_speed)
+      d3.select("#moves").text(d.total_moves + "/" + total_moves);
+
+      d3.selectAll(".move_panel").attr("visibility","visible");
+      d3.select("#hex_" + d.moves[0]).attr("opacity","0.2");
+      current_unit = i;
+      current_hex_column = +d.start_position.split("-")[1];
+      current_hex_row = +d.start_position.split("-")[0];
+      moving = true;
+
+      d3.select("#restart").on("click",function(d){
+        d3.select("#submit_text").attr("opacity",1);
+        ship_data.units[current_unit].total_moves = 0;
+        ship_data.units[current_unit].submitted = false;
+        d3.select("#panel_icon_" + i).attr("fill",ship_data.Force_Colour).attr("opacity",1);
+        d3.select("#map_icon_" + i).attr("fill",ship_data.Force_Colour).attr("opacity",1);
+        d3.select("#moves").text("0/" + total_moves);
+        d3.select("#map_path_" + current_unit).attr("d","M0 0");
+        ship_data.units[current_unit].moves = [ship_data.units[current_unit].moves[0]]
+        ship_data.units[current_unit].path_moves = [ship_data.units[current_unit].path_moves[0]]
+        current_hex_column = +ship_data.units[current_unit].start_position.split("-")[1];
+        current_hex_row = +ship_data.units[current_unit].start_position.split("-")[0];
+        d3.selectAll(".hexagon").attr("opacity",1);
+        d3.select("#hex_" + ship_data.units[current_unit].moves[0]).attr("opacity","0.2");
+
+      })
+
+      d3.select("#submit").on("click",function(d){
+        if(ship_data.units[current_unit].submitted == false){
+          ship_data.units[current_unit].submitted = true;
+          d3.select("#map_path_" + current_unit).attr("stroke","purple");
+          d3.select("#map_icon_" + current_unit).attr("fill","purple");
+          d3.select("#panel_icon_" + current_unit).attr("fill","purple").attr("opacity",1);
+          d3.select("#submit_text").attr("opacity",0.2);
+        }
+
+      })
+    }
+
   }
 
   function draw_move_panel(svg,x,p_width,p_height){
@@ -174,11 +226,11 @@ function ready(error, data,ship_data){
     add_text(svg,x+10+x_step,margin+(step*3),"left","0","move_panel","vessel_type")
     add_text(svg,x+10+x_step,margin+ (step*4),"left","0","move_panel","hex_speed")
 
-    add_rect(svg,80,25,x+p_width-90,p_height-5,"move_panel");
-    add_text(svg,x+p_width-50,p_height+12.5,"middle","RESTART","move_panel")
+    add_rect(svg,80,25,x+p_width-90,p_height-5,"move_panel","restart");
+    add_text(svg,x+p_width-50,p_height+12.5,"middle","RESTART","move_panel","restart_text")
 
-    add_rect(svg,80,25,x+p_width-180,p_height-5,"move_panel");
-    add_text(svg,x+p_width-140,p_height+12.5,"middle","SUBMIT","move_panel")
+    add_rect(svg,80,25,x+p_width-180,p_height-5,"move_panel","submit");
+    add_text(svg,x+p_width-140,p_height+12.5,"middle","SUBMIT","move_panel","submit_text")
 
     add_rect(svg,120,25,x+p_width-310,p_height-5,"move_panel");
     add_text(svg,x+p_width-250,p_height+12.5,"middle","CHANGE SPEED","move_panel")
@@ -203,9 +255,11 @@ function ready(error, data,ship_data){
           .attr("height", height);
 
       var hex_group = svg.append("g").attr("class","hex_group");
+      svg.append("g").attr("class","icon_group");
     } else {
-      var svg = d3.select(".hex_svg");
       var hex_group = d3.select(".hex_group");
+      d3.select(".icon_group");
+
 
     };
 
@@ -215,8 +269,8 @@ function ready(error, data,ship_data){
     columns = d3.extent(data,d => +d.column);
 
     // The maximum radius the hexagons can have to still fit the screen
-    hexRadius = d3.min([width/((rows[1] + 0.5) * Math.sqrt(3)),
-      height/((columns[1] + 1/3) * 1.5)]);
+    hexRadius = d3.min([width/((columns[1] + 0.5) * Math.sqrt(3)),
+      height/((rows[1] + 1/3) * 1.5)]);
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -234,7 +288,6 @@ function ready(error, data,ship_data){
 
     var my_data = hexbin(points);
 
-
     //Draw the hexagons
     hex_group.append("g")
         .selectAll(".hexagon")
@@ -248,15 +301,29 @@ function ready(error, data,ship_data){
         .attr("stroke", "white")
         .attr("stroke-width", "1px")
         .attr("transform","translate(" + margin + "," + margin + ")")
-        .attr("fill", function(d){return colors(+d[0][2])})
+        .attr("fill", d => colors(+d[0][2]))
+        .on("mouseover",function(d){
+          if(moving == true){
+            var co_ords = this.id.split("_")[1]
+            var this_row = +co_ords.split("-")[0];
+            var this_column = +co_ords.split("-")[1];
+
+            if(check_adjacent(this_row,this_column) === true){
+              d3.select(this).attr("fill","#F0F0F0")
+            }
+          }
+        })
+        .on("mouseout",function(d){
+          d3.select(this).attr("fill",d => colors(+d[0][2]))
+        })
         .on("click",function(d){
           if(moving == true){
             var co_ords = this.id.split("_")[1]
-            var this_column = +co_ords.split("-")[0];
-            var this_row = +co_ords.split("-")[1];
+            var this_row = +co_ords.split("-")[0];
+            var this_column = +co_ords.split("-")[1];
 
             if(check_adjacent(this_row,this_column) === true){
-              new_move(ship_data.units[current_unit],co_ords,this_column,this_row,this)
+              new_move(ship_data.units[current_unit],co_ords,this_row,this_column,this)
             } else {
               console.log('not adjacent')
             }
@@ -270,13 +337,18 @@ function ready(error, data,ship_data){
 
 };
 
+function get_points(start_position){
+  return points.filter(f => f[5] == start_position);
+}
 
-function new_move(my_data,co_ords,column,row,my_object){
+function new_move(my_data,co_ords,row,column,my_object){
 
   var new_move_count = my_data.total_moves + my_data.current_hex_speed;
   if(new_move_count <= total_moves){
-    d3.select(my_object).attr("fill","red").attr("opacity","0.2");
     my_data.moves.push(co_ords);
+    var current_centre_position = get_points(co_ords);
+    my_data.path_moves.push([current_centre_position[0][0],current_centre_position[0][1]])
+    reset_path(my_data.path_moves)
     current_hex_column = column;
     current_hex_row = row;
     my_data.total_moves += my_data.current_hex_speed;
@@ -285,22 +357,53 @@ function new_move(my_data,co_ords,column,row,my_object){
 
 }
 
+function reset_path(moves){
+
+  var new_path = "";
+
+  for(m in moves){
+    if(m == "0"){
+      new_path = "M" + moves[m][0] + " " + moves[m][1]
+    } else {
+      new_path += " L" + moves[m][0] + " " + moves[m][1]
+    }
+  }
+  d3.select("#map_path_" + current_unit)
+      .attr("d",new_path)
+}
 function check_adjacent(row,column){
 
   var adjacent = true;
 
-  if(row > (current_hex_row+1) | row < (current_hex_row-1)){
+  if (row < (current_hex_row-1) || row > (current_hex_row+1)){
     adjacent = false;
-  } else if (column > (current_hex_column+1) || column < (current_hex_column-1)){
-    adjacent = false;
-  }
+  } else if(row == current_hex_row){
+    if(column > (current_hex_column+1) || column < (current_hex_column-1)){
+      adjacent = false;
+    }
+  } else {
+    if((current_hex_row % 2) == 0){
+      if(column < (current_hex_column-1) || column > (current_hex_column)){
+        adjacent = false;
+      }
+    } else {
+      if(column < current_hex_column || column > (current_hex_column+1)){
+        adjacent = false;
+      }
+    }
+
+  };
+
+
+
   return adjacent;
 
 }
-function add_rect(my_svg,r_width,r_height,x,y,my_class){
+function add_rect(my_svg,r_width,r_height,x,y,my_class,my_id){
 
   my_svg.append("rect")
       .attr("class",my_class)
+      .attr("id",my_id)
       .attr("width",r_width)
       .attr("height",r_height)
       .attr("x",x)
@@ -318,6 +421,7 @@ function add_text(my_svg,x,y,anchor,my_text,my_class,my_id,font_size){
     font_size = "1em";
   }
   my_svg.append("text")
+      .attr("pointer-events","none")
       .attr("class",my_class)
       .attr("id",my_id)
       .attr("text-anchor",anchor)

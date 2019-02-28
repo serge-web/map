@@ -8,9 +8,11 @@
         "vessel_type": "ship",
         "start_position": "27-17",
         "moves": ["27-17"],
+        "path_moves": [],
         "move_history": [],
         "current_hex_speed": 1,
-        "total_moves": 0
+        "total_moves": 0,
+        "submitted": false
     },
         {
             "name": "sub_group",
@@ -18,9 +20,11 @@
             "vessel_type": "helicopter",
             "start_position": "27-17",
             "moves": ["27-17"],
+            "path_moves": [],
             "move_history": [],
             "current_hex_speed": 4,
-            "total_moves": 0
+            "total_moves": 0,
+            "submitted": false
         }
     ]
 }
