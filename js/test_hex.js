@@ -24,6 +24,29 @@ function ready(error, data,ship_data) {
   data = filter_data(data);
   draw_hex_map(data,ship_data);
   draw_unit_groups("test_ships",ship_data);
+  draw_moves_svg("moves_div");
+}
+
+function draw_moves_svg(div_id){
+
+  var chart_div = document.getElementById(div_id);
+  //set width and height.
+  var width = chart_div.clientWidth;
+  var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
+
+  var svg;
+
+  if(d3.select(".moves_svg")._groups[0][0] == null){
+    //draw svg to div height and width
+    svg = d3.select("#" + div_id)
+        .append("svg")
+        .attr("class","moves_svg")
+        .attr("preserveAspectRatio", "none")
+        .attr("viewBox", "0 0 " + width + " " + height);
+
+  } else {
+    svg = d3.select(".moves_svg");
+  }
 
 }
   function draw_unit_groups(div_id,ship_data){
@@ -40,8 +63,8 @@ function ready(error, data,ship_data) {
       svg = d3.select("#" + div_id)
           .append("svg")
           .attr("class","ships_svg")
-          .attr("width", width)
-          .attr("height", height);
+          .attr("preserveAspectRatio", "none")
+          .attr("viewBox", "0 0 " + width + " " + height);
 
       var move_panel_width = 550;
       var move_panel_x = width - margin - move_panel_width;
@@ -196,6 +219,7 @@ function ready(error, data,ship_data) {
           d3.select("#map_icon_" + current_unit).attr("fill","purple");
           d3.select("#panel_icon_" + current_unit).attr("fill","purple").attr("opacity",1);
           d3.select("#submit_text").attr("opacity",0.2);
+          d3.selectAll(".moves").remove();
         }
       });
 
@@ -270,8 +294,8 @@ function ready(error, data,ship_data) {
       var svg = d3.select("#test_hex")
           .append("svg")
           .attr("class","hex_svg")
-          .attr("width", width)
-          .attr("height", height);
+          .attr("preserveAspectRatio", "xMidYMid meet")
+          .attr("viewBox", "0 0 " + width + " " + height )
 
       hex_group = svg.append("g").attr("class","hex_group");
       svg.append("g").attr("class","icon_group");
@@ -282,10 +306,12 @@ function ready(error, data,ship_data) {
 
     rows = d3.extent(data, d=> +d.row);
     columns = d3.extent(data,d => +d.column);
+    console.log(rows,columns)
 
+    var hex_width_max = width/((columns[1]*2)+2);
+    var hex_height_max = height/((rows[1]*1.5)+3)
     // The maximum radius the hexagons can have to still fit the screen
-    hexRadius = d3.min([width/((columns[1] + 0.5) * Math.sqrt(3)),
-      height/((rows[1] + 1/3) * 1.5)]);
+    hexRadius = Math.min(hex_width_max,hex_height_max);
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -373,10 +399,19 @@ function new_move(my_data,co_ords,row,column){
         .attr("x",my_points[0][0] - (hexRadius*0.75))
         .attr("y",my_points[0][1] + (hexRadius/3));
 
+
     reset_path(my_data.moves)
     current_hex_column = column;
     current_hex_row = row;
     my_data.total_moves += my_data.current_hex_speed;
+
+    d3.select(".moves_svg")
+        .append("text")
+        .attr("class","moves")
+        .attr("x",5)
+        .attr("y",20 * (my_data.moves.length-1))
+        .text((my_data.moves.length-1) + ": " + my_data.moves[my_data.moves.length-2] + " to " + my_data.moves[my_data.moves.length-1] );
+
     d3.select("#moves").text(my_data.total_moves + "/" + total_moves);
   } else {
     alert("You've reached your maximum moves.")
@@ -396,8 +431,9 @@ function reset_path(moves){
       new_path += " L" + current_moves[0][0] + " " + current_moves[0][1]
     }
   }
+
   d3.select("#map_path_" + current_unit)
-      .attr("d",new_path)
+      .attr("d",new_path);
 }
 function check_adjacent(row,column){
 
@@ -473,8 +509,8 @@ function filter_data(data){
   }
 
 
-  data = data.filter(d => d.column >= 10 && d.column <= 48);
-  data = data.filter(d => d.row >= 10 && d.row <= 45);
+  data = data.filter(d => d.column >= 10 && d.column <= 45);
+  data = data.filter(d => d.row >= 10 && d.row <= 50);
 
   rows = d3.extent(data, d=> +d.row);
   columns = d3.extent(data,d => +d.column);
