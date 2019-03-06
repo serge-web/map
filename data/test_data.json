@@ -6,8 +6,10 @@
         "name": "core_group",
         "vessel_count": 10,
         "vessel_type": "ship",
-        "start_position": "27-17",
-        "moves": ["27-17"],
+        "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1},
+        "moves": [
+            {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1}
+        ],
         "move_history": [],
         "current_hex_speed": 1,
         "current_speed": "20kph",
@@ -23,8 +25,10 @@
             "name": "sub_group",
             "vessel_count": 1,
             "vessel_type": "helicopter",
-            "start_position": "27-17",
-            "moves": ["27-17"],
+            "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1},
+            "moves": [
+                {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1}
+            ],
             "move_history": [],
             "current_hex_speed": 4,
             "current_speed": "10kph",
