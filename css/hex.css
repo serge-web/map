@@ -35,3 +35,8 @@ body{
   stroke-width: 3px;
   fill: transparent;
 }
+
+.unit_map_path_group path {
+stroke-width:1px;
+fill:none;
+}

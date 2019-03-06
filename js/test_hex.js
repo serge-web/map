@@ -131,17 +131,18 @@ function draw_moves_svg(div_id){
     //enter new groups
     enter = my_group.enter().append("g").attr("class","unit_map_group");
     //append path and icon to new group
-    enter.append("path").attr("class","unit_map_path");
+    enter.append("g").attr("class","unit_map_path_group");
     enter.append("text").attr("class","unit_map_icon fa");  //outline rect
     //merge and remove
     my_group = my_group.merge(enter);
     //path properties
-    my_group.select(".unit_map_path")
-            .attr("id",function(d,i){return "map_path_" + i})
-            .attr("stroke",ship_data.Force_Colour)
-            .attr("stroke-width","0.5px")
-            .attr("fill","transparent")
-            .attr("transform","translate(" + margin + "," + margin + ")");
+    my_group.select(".unit_map_path_group")
+            .attr("id",function(d,i){return "map_path_group_" + i})
+            .attr("transform","translate(" + margin + "," + margin + ")")
+        .append("path")
+        .attr("id","map_path_0")
+        .attr("stroke",ship_data.Force_Colour)
+
     //icon properties
     my_group.select(".unit_map_icon")
         .attr("pointer-events","none")
@@ -195,7 +196,6 @@ function draw_moves_svg(div_id){
         //reset elements
         ship_data.units[current_unit].total_moves = 0;  //total moves
         ship_data.units[current_unit].submitted = false; //submitted
-        d3.selectAll(".moves").remove();
         d3.select("#panel_icon_" + current_unit).attr("fill",ship_data.Force_Colour).attr("opacity",1);  //panel icon
         d3.select("#map_icon_" + current_unit)  //map icon - appearance and position
             .attr("fill",ship_data.Force_Colour)
@@ -206,9 +206,10 @@ function draw_moves_svg(div_id){
               d.y = my_points[0][1] + (hexRadius/3);
               return d.x})
             .attr("y",d => d.y);
-        d3.select("#map_path_" + current_unit).attr("d","M0 0").attr("stroke",ship_data.Force_Colour); //map path
+        d3.selectAll("#map_path_group_" + current_unit + " path").attr("d","M0 0").attr("stroke",ship_data.Force_Colour); //map path
         d3.select("#moves").text("0/" + total_moves); //moves tex element
         ship_data.units[current_unit].moves = [ship_data.units[current_unit].moves[0]]; //moves (start position only)
+        draw_moves(ship_data.units[current_unit].moves)
         current_hex_column = +ship_data.units[current_unit].start_move.hex_reference.split("-")[1]; //current hex column and row
         current_hex_row = +ship_data.units[current_unit].start_move.hex_reference.split("-")[0];
       });
@@ -218,7 +219,7 @@ function draw_moves_svg(div_id){
         if(ship_data.units[current_unit].submitted === false){
           //set submitted to tru and change appearance of icons, paths and button
           ship_data.units[current_unit].submitted = true;
-          d3.select("#map_path_" + current_unit).attr("stroke","purple");
+          d3.selectAll("#map_path_group_" + current_unit + " path").attr("stroke","purple");
           d3.select("#map_icon_" + current_unit).attr("fill","purple");
           d3.select("#panel_icon_" + current_unit).attr("fill","purple").attr("opacity",1);
           d3.select("#panel_label_" + current_unit).attr("fill","purple")
@@ -237,11 +238,17 @@ function draw_moves_svg(div_id){
           ship_data.units[current_unit].current_hex_speed = speeds_available[current_speed_index].hex_speed;
           d3.select("#speed").text(speeds_available[current_speed_index].speed);
           d3.select("#hex_speed").text(speeds_available[current_speed_index].hex_speed);
+          ship_data.units[current_unit].current_path_id += 1;
+          d3.select("#map_path_group_" + current_unit)
+              .append("path")
+              .attr("id","map_path_" + ship_data.units[current_unit].current_path_id)
+              .attr("stroke",ship_data.Force_Colour);
         }
 
       })
 
     }
+
 
     function select_unit_icon(d,i){
       //starts a group 'move' if not in the middle of one.
@@ -252,9 +259,9 @@ function draw_moves_svg(div_id){
         d3.selectAll(".unit_rect").attr("fill","white");
         d3.selectAll(".unit_icon").attr("fill","grey");
         d3.selectAll(".unit_map_icon").attr("fill",ship_data.Force_Colour).attr("opacity",0);
-        d3.selectAll(".unit_map_path").attr("opacity",0);
+        d3.selectAll(".unit_map_path_group path").attr("opacity",0);
         d3.select("#submit_text").attr("opacity",1);
-        d3.selectAll(".moves").remove(); //clear moves panel
+        draw_moves(ship_data.units[current_unit].moves)
         //change colour/button state if already submitted.
         if(d.submitted === true){
           current_colour = "purple";
@@ -266,7 +273,7 @@ function draw_moves_svg(div_id){
         d3.select("#panel_icon_" + i).attr("fill",current_colour).attr("opacity",1);
         d3.select("#panel_label_" + i).attr("fill",current_colour).attr("opacity",1);
         d3.select("#map_icon_" + i).attr("fill",current_colour).attr("opacity",1);
-        d3.select("#map_path_" + i).attr("opacity",1);
+        d3.selectAll("#map_path_group_" + i + " path").attr("opacity",1);
         //set values on move panel and make it visible
         d3.select("#group_name").text(d.name);
         d3.select("#vessel_count").text(d.vessel_count);
@@ -292,17 +299,28 @@ function draw_moves_svg(div_id){
 
   function draw_moves(moves){
 
-      for(m in moves){
-        if(+m > 0){
-          d3.select(".moves_svg")
-              .append("text")
-              .attr("class","moves")
-              .attr("x",5)
-              .attr("y",20 * (+m))
-              .text(m+ ": " + moves[m].hex_reference + " to " + moves[m].hex_reference + " speed=" +  moves[m].hex_speed);
 
-        }
-      }
+    var moves_svg = d3.select(".moves_svg");
+    //now bind data and create group elements.
+    //build unit
+    var my_group = moves_svg.selectAll(".moves_text_group").data(moves);
+    //exit, remove
+    my_group.exit().remove();
+    //enter new groups
+    enter = my_group.enter().append("g").attr("class","moves_text_group");
+    //append rect, icon and label to new group
+    enter.append("text").attr("class","moves_text");
+    //merge and remove
+    my_group = my_group.merge(enter);
+
+    my_group.select(".moves_text")
+            .attr("x",5)
+            .attr("y",(d,i) => (20 * (+i)))
+            .text(function(d,i){
+              if(+i > 0){
+                return i + ": " + d.hex_reference + " to " + d.hex_reference + " speed=" +  d.hex_speed
+              }
+            });
   }
 
 
@@ -419,7 +437,7 @@ function new_move(my_data,co_ords,row,column){
   var new_move_count = my_data.total_moves + my_data.current_hex_speed;
   if(new_move_count <= total_moves){
 
-    my_data.moves.push({"hex_reference":co_ords, "long_lat": long_lats[co_ords], "hex_speed": my_data.current_hex_speed, "hex_type": 1});
+    my_data.moves.push({"hex_reference":co_ords, "long_lat": long_lats[co_ords], "hex_speed": my_data.current_hex_speed, "hex_type": 1, "current_path_id": my_data.current_path_id});
 
     var my_points = get_points(co_ords);
 
@@ -429,19 +447,12 @@ function new_move(my_data,co_ords,row,column){
         .attr("x",my_points[0][0] - (hexRadius*0.75))
         .attr("y",my_points[0][1] + (hexRadius/3));
 
-
-    reset_path(my_data.moves)
+    reset_path(my_data.moves,my_data.current_path_id)
     current_hex_column = column;
     current_hex_row = row;
     my_data.total_moves += my_data.current_hex_speed;
 
-    d3.select(".moves_svg")
-        .append("text")
-        .attr("class","moves")
-        .attr("x",5)
-        .attr("y",20 * (my_data.moves.length-1))
-        .text((my_data.moves.length-1) + ": " + my_data.moves[my_data.moves.length-2].hex_reference + " to " + my_data.moves[my_data.moves.length-1].hex_reference + " speed=" +  my_data.moves[my_data.moves.length-1].hex_speed);
-
+    draw_moves(my_data.moves);
     d3.select("#moves").text(my_data.total_moves + "/" + total_moves);
   } else {
     alert("You've reached your maximum moves.")
@@ -449,20 +460,30 @@ function new_move(my_data,co_ords,row,column){
 
 }
 
-function reset_path(moves){
+function reset_path(moves,current_path_id){
 
-  var new_path = "";
+
+  var new_path = "",current_move={};
 
   for(m in moves){
-    var current_moves = get_points(moves[m].hex_reference);
-    if(m === "0"){
-      new_path = "M" + current_moves[0][0] + " " + current_moves[0][1]
+    if(moves[m].current_path_id === current_path_id){
+      if(current_path_id !== 0){
+        var previous_moves = get_points(current_move.hex_reference);
+        new_path = "M" + previous_moves[0][0] + " " + previous_moves[0][1]
+      };
+      var current_moves = get_points(moves[m].hex_reference);
+      if(m === "0"){
+        new_path = "M" + current_moves[0][0] + " " + current_moves[0][1]
+      } else {
+        new_path += " L" + current_moves[0][0] + " " + current_moves[0][1]
+      }
     } else {
-      new_path += " L" + current_moves[0][0] + " " + current_moves[0][1]
+      current_move = moves[m];
     }
-  }
+  };
 
-  d3.select("#map_path_" + current_unit)
+  d3.select("#map_path_group_" + current_unit).select(" #map_path_" + current_path_id)
+      .attr("stroke-dasharray",moves[m].hex_speed + "," + moves[m].hex_speed)
       .attr("d",new_path);
 }
 function check_adjacent(row,column){

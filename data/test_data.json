@@ -6,13 +6,17 @@
         "name": "core_group",
         "vessel_count": 10,
         "vessel_type": "ship",
-        "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1},
+        "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+            "current_path_id": 0},
         "moves": [
-            {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1}
+            {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+                "current_path_id": 0
+            }
         ],
         "move_history": [],
         "current_hex_speed": 1,
         "current_speed": "20kph",
+        "current_path_id": 0,
         "total_moves": 0,
         "submitted": false,
         "available_speeds": [
@@ -25,13 +29,16 @@
             "name": "sub_group",
             "vessel_count": 1,
             "vessel_type": "helicopter",
-            "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1},
+            "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+                "current_path_id": 0},
             "moves": [
-                {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1}
+                {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+                    "current_path_id": 0}
             ],
             "move_history": [],
             "current_hex_speed": 4,
             "current_speed": "10kph",
+            "current_path_id": 0,
             "total_moves": 0,
             "submitted": false,
             "available_speeds": [
