@@ -71,6 +71,17 @@ function draw_moves_svg(div_id){
       var move_panel_x = width - margin - move_panel_width;
       draw_move_panel(svg,move_panel_x,move_panel_width,height-(margin*2));
       d3.selectAll(".move_panel").attr("visibility","hidden");
+
+      add_rect(svg,120,25,move_panel_x-130,height-(margin*2)-5,"submitted_buttons","replay");
+      add_text(svg,move_panel_x-130+60,height-(margin*2)+12.5,"middle","REPLAY TURN","submitted_buttons","replay_text");
+
+      add_rect(svg,120,25,move_panel_x-130,height-(margin*2)-35,"submitted_buttons","submit_moves");
+      add_text(svg,move_panel_x-130+60,height-(margin*2)-17.5,"middle","SUBMIT MOVES","submitted_buttons","submit_moves_text");
+
+      d3.select("#replay").on("click",function(){
+        replay_turn(ship_data.units)
+      })
+      d3.selectAll(".submitted_buttons").attr("visibility","hidden");
     } else {
       svg = d3.select(".ships_svg");
     }
@@ -193,6 +204,7 @@ function draw_moves_svg(div_id){
 
       d3.select("#restart").on("click",function(){
         d3.select("#submit_text").attr("opacity",1);
+        d3.selectAll(".submitted_buttons").attr("visibility","hidden");
         //reset elements
         ship_data.units[current_unit].total_moves = 0;  //total moves
         ship_data.units[current_unit].submitted = false; //submitted
@@ -224,6 +236,11 @@ function draw_moves_svg(div_id){
           d3.select("#panel_icon_" + current_unit).attr("fill","purple").attr("opacity",1);
           d3.select("#panel_label_" + current_unit).attr("fill","purple")
           d3.select("#submit_text").attr("opacity",0.2);
+
+          var all_submitted = ship_data.units.filter(d => d.submitted === true);
+          if(all_submitted.length === ship_data.units.length){
+            d3.selectAll(".submitted_buttons").attr("visibility","visible");
+          }
         }
       });
 
@@ -250,6 +267,76 @@ function draw_moves_svg(div_id){
     }
 
 
+    function replay_turn(all_units){
+      var counter = 0,move_positions={}, paths={},changing=false,previous_co_ords;
+
+      d3.selectAll(".unit_map_path_group path").attr("opacity","0");
+      d3.selectAll(".unit_map_icon").attr("opacity","0");
+      for(a in all_units){;
+        counter = 0;
+        paths[a] = "";
+        move_positions[a] = {}
+        for(m in all_units[a].moves){
+          var speed = all_units[a].moves[m].hex_speed;
+          for (i = 1; i <= speed; i++) {
+            if(i == 1){
+              changing = true;
+            } else {
+              changing = false
+            }
+            move_positions[a][counter] = {
+              icon_position: all_units[a].moves[m].hex_reference,
+              path_id: all_units[a].moves[m].current_path_id,
+              changing_path: changing
+            }
+            counter += 1
+          }
+        }
+      }
+      counter = 0;
+
+      var my_animation = setInterval(play_animation, 400);
+
+      function play_animation() {
+        if(counter === 0){
+          d3.selectAll(".unit_map_path_group path").attr("d","").attr("opacity","1").attr("stroke","purple");
+          d3.selectAll(".unit_map_icon").attr("opacity","1").attr("fill","purple");
+        }
+        for(a in all_units){
+          if(move_positions[a][counter] !== undefined){
+            var co_ords = get_points(move_positions[a][counter].icon_position);
+            d3.select("#map_icon_" + a)
+                .attr("x",co_ords[0][0]  - (hexRadius*0.75))
+                .attr("y",co_ords[0][1] + (hexRadius/3));
+            if(move_positions[a][counter].changing_path === true){
+              var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
+
+              if(path_string.includes("M") === false){
+                if(move_positions[a][counter].path_id === 0){
+                  paths[a] += "M" + co_ords[0][0] + " " + co_ords[0][1];
+                } else {
+                  var previous_co_ords = get_points(move_positions[a][counter-1].icon_position);
+                  paths[a] = " M " + previous_co_ords[0][0] + " " + previous_co_ords[0][1] + " L " + co_ords[0][0] + " " + co_ords[0][1];
+                }
+              } else {
+                paths[a] += " L" + co_ords[0][0] + " " + co_ords[0][1]
+              }
+              d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d",paths[a]);
+
+            }
+
+          };
+
+        };
+
+        counter += 1;
+        if(counter > total_moves){
+          clearInterval(my_animation);
+        }
+      }
+
+
+    }
     function select_unit_icon(d,i){
       //starts a group 'move' if not in the middle of one.
       if(ship_data.units[current_unit].total_moves > 0  && ship_data.units[current_unit].submitted === false){
@@ -463,13 +550,14 @@ function new_move(my_data,co_ords,row,column){
 function reset_path(moves,current_path_id){
 
 
-  var new_path = "",current_move={};
+  var new_path = "",current_move={},changing = false;
 
   for(m in moves){
     if(moves[m].current_path_id === current_path_id){
-      if(current_path_id !== 0){
+      if(current_path_id !== 0 && changing === true){
         var previous_moves = get_points(current_move.hex_reference);
         new_path = "M" + previous_moves[0][0] + " " + previous_moves[0][1]
+        changing = false;
       };
       var current_moves = get_points(moves[m].hex_reference);
       if(m === "0"){
@@ -478,6 +566,7 @@ function reset_path(moves,current_path_id){
         new_path += " L" + current_moves[0][0] + " " + current_moves[0][1]
       }
     } else {
+      changing = true;
       current_move = moves[m];
     }
   };
