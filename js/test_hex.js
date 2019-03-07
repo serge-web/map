@@ -1,4 +1,4 @@
-var icons = {"helicopter":'\uf533',"ship":'\uf21a'};
+var icons = {"helicopter":'\uf533',"ship":'\uf21a',"sub":'\uf578'};
 var hexRadius = 0;
 var points = [];
 var true_points = [];

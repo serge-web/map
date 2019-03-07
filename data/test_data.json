@@ -1,15 +1,15 @@
 {
-    "Force": "blue_1",
-    "Force_Colour": "blue",
+    "Force": "red",
+    "Force_Colour": "#cb181d",
     "task_number": 0,
     "units": [{
-        "name": "core_group",
-        "vessel_count": 10,
-        "vessel_type": "ship",
-        "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+        "name": "submarine",
+        "vessel_count": 1,
+        "vessel_type": "sub",
+        "start_move":  {"hex_reference":"10-10", "long_lat": "", "hex_speed": 1, "hex_type": 1,
             "current_path_id": 0},
         "moves": [
-            {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+            {"hex_reference":"10-10", "long_lat": "", "hex_speed": 1, "hex_type": 1,
                 "current_path_id": 0
             }
         ],
@@ -22,30 +22,30 @@
         "available_speeds": [
             {"speed": "20kph","hex_speed": 1},
             {"speed": "15kph","hex_speed": 2},
-            {"speed": "10kph","hex_speed": 4}
+            {"speed": "10kph","hex_speed": 3}
         ]
     },
         {
-            "name": "sub_group",
-            "vessel_count": 1,
+            "name": "ship_task_force",
+            "vessel_count": 12,
             "vessel_type": "helicopter",
-            "start_move":  {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+            "start_move":  {"hex_reference":"17-12", "long_lat": "", "hex_speed": 1, "hex_type": 1,
                 "current_path_id": 0},
             "moves": [
-                {"hex_reference":"27-17", "long_lat": "", "hex_speed": 1, "hex_type": 1,
+                {"hex_reference":"17-12", "long_lat": "", "hex_speed": 1, "hex_type": 1,
                     "current_path_id": 0}
             ],
             "move_history": [],
-            "current_hex_speed": 4,
+            "current_hex_speed": 1,
             "current_speed": "10kph",
             "current_path_id": 0,
             "total_moves": 0,
             "submitted": false,
             "available_speeds": [
-            {"speed": "10kph","hex_speed": 4},
-            {"speed": "15kph","hex_speed": 2},
-            {"speed": "20kph","hex_speed": 1}
-        ]
+                {"speed": "10kph","hex_speed": 4},
+                {"speed": "15kph","hex_speed": 2},
+                {"speed": "20kph","hex_speed": 1}
+            ]
         }
     ]
 }
