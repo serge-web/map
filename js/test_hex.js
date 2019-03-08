@@ -23,6 +23,7 @@ var move_positions = {};
 var paths = {};
 var animation_units = [];
 var counter = 0;  // used for animation, needs to be global for pause button to work (I think)
+var map_view = "player";  //currently player or observer.
 
 d3.queue()
     .defer(d3.csv,"data/hex_data.csv")
@@ -32,21 +33,21 @@ d3.queue()
 function ready(error, data,all_ship_data) {
 
 
-  current_ship_data = all_ship_data.cells[0];
-  current_colour = current_ship_data.Force_Colour;
   data = filter_data(data); // not a function to be proud of, but cuts down the map data.
   draw_hex_map(data);
-  draw_unit_groups("test_ships");
-  draw_moves_svg("moves_div");
 
-
+  d3.selectAll(".view_type")
+      .on("change",function(d){
+          map_view = this.value;
+          render_items();
+      })
   d3.select("#cell_select")
       .on("change",function(){
         current_ship_data = all_ship_data.cells.filter(d => d.Force === this.value)[0];
         current_colour = current_ship_data.Force_Colour;
         current_unit = 0;
         current_speed_index = 0;
-        initialise_cell_items()
+        initialise_player_items()
       })
       .selectAll('option')
       .data(all_ship_data.cells)
@@ -54,10 +55,46 @@ function ready(error, data,all_ship_data) {
       .append('option')
       .text(d => d.Force);
 
+  render_items();
 
-    initialise_cell_items()
+    function render_items(){
+        if(map_view === "player"){
+            current_ship_data = all_ship_data.cells[0];
+            current_colour = current_ship_data.Force_Colour;
+            if(d3.select(".moves_svg")._groups[0][0] == null) {
+                draw_unit_groups("test_ships");
+                draw_moves_svg("moves_div");
+            } else {
+                d3.select(".moves_svg").style("visibility","visible");
+                d3.select(".ships_svg").style("visibility","visible");
+            }
+            initialise_player_items()
+        } else if(map_view === "observer"){
+            d3.select(".moves_svg").style("visibility","hidden");
+            d3.select(".ships_svg").selectAll(".unit_group").data([]).exit().remove();
+            var my_units = [];
+            for(c in all_ship_data.cells){
+                for(u in all_ship_data.cells[c].units){
+                    all_ship_data.cells[c].units[u].current_colour = all_ship_data.cells[c].Force_Colour;
+                    my_units.push(all_ship_data.cells[c].units[u])
+                }
+            }
+            initialise_map_icons(my_units);
+            animation_units = my_units;
+            replay_turn();
+        }
+        d3.select("#header_div")
+            .style("visibility",function(d){
+                if(map_view === "player"){
+                    return "visible";
+                } else {
+                    return "hidden";
+                }
+            });
+    }
 
 }
+
 
   // moves - just draw the svg
   function draw_moves_svg(div_id){
@@ -67,7 +104,6 @@ function ready(error, data,all_ship_data) {
     var width = chart_div.clientWidth;
     var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
 
-    if(d3.select(".moves_svg")._groups[0][0] == null){
       //draw svg to div height and width
       d3.select("#" + div_id)
           .append("svg")
@@ -75,7 +111,6 @@ function ready(error, data,all_ship_data) {
           .attr("preserveAspectRatio", "none")
           .attr("viewBox", "0 0 " + width + " " + height);
 
-    }
 
   }
   // units - draw svg, move panel + submitted buttons, unit 'panels' (on move svg) and unit icon/path group combos (on hex svg)
@@ -88,7 +123,6 @@ function ready(error, data,all_ship_data) {
 
     var svg;
 
-    if(d3.select(".ships_svg")._groups[0][0] == null){
       //1. draw svg to div height and width
       svg = d3.select("#" + div_id)
           .append("svg")
@@ -129,9 +163,7 @@ function ready(error, data,all_ship_data) {
             replay_turn();
       });
       d3.selectAll(".submitted_buttons").attr("visibility","hidden");
-    } else {
-      d3.select(".ships_svg");
-    }
+
 
     function draw_move_panel(svg,x,p_width,p_height){
       //draw individual elements of move panel
@@ -175,7 +207,7 @@ function ready(error, data,all_ship_data) {
             .attr("fill",current_colour)
             .attr("opacity",1)
             .attr("x",function(d){
-              var my_points = get_points(d.start_move.hex_reference);
+              var my_points = get_points(d.moves[0].hex_reference);
               d.x = my_points[0][0]  - (hexRadius*0.75);
               d.y = my_points[0][1] + (hexRadius/3);
               return d.x})
@@ -184,8 +216,8 @@ function ready(error, data,all_ship_data) {
         d3.select("#moves").text("0/" + total_moves); //moves tex element
         current_ship_data.units[current_unit].moves = [current_ship_data.units[current_unit].moves[0]]; //moves (start position only)
         draw_moves(current_ship_data.units[current_unit].moves);
-        current_hex_column = +current_ship_data.units[current_unit].start_move.hex_reference.split("-")[1]; //current hex column and row
-        current_hex_row = +current_ship_data.units[current_unit].start_move.hex_reference.split("-")[0];
+        current_hex_column = +current_ship_data.units[current_unit].moves[0].hex_reference.split("-")[1]; //current hex column and row
+        current_hex_row = +current_ship_data.units[current_unit].moves[0].hex_reference.split("-")[0];
       });
 
       d3.select("#submit").on("click",function(){
@@ -242,7 +274,8 @@ function ready(error, data,all_ship_data) {
   }
 
 
-  function initialise_cell_items(){
+
+  function initialise_player_items(){
 
       if(check_submitted() === false){
           d3.selectAll(".submitted_buttons").attr("visibility","hidden");
@@ -285,7 +318,14 @@ function ready(error, data,all_ship_data) {
           d3.selectAll(".unit_rect").attr("fill","white");
           d3.select(this).attr("fill","#F0F0F0");
         })
-        .on("click", select_unit_icon);
+        .on("click", function(d,i){
+            current_unit = i;
+            //change colour/button state if already submitted.
+            if(d.submitted === true){
+                d3.select("#submit_text").attr("opacity",0.2);
+            }
+            select_unit_icon();
+        });
     //icon properties
     my_group.select(".unit_icon")
         .attr("id",function(d,i){return "panel_icon_" + i})
@@ -305,48 +345,72 @@ function ready(error, data,all_ship_data) {
         .attr("x",function(d,i){return margin + (icon_step*i) + 45})
         .attr("y",(height/2)+35)
         .attr("text-anchor","middle");
-    // 3. hex svg icons and path groups
-    var map_svg = d3.select(".hex_svg").select(".icon_group");
-    //repeat for map units,
-    my_group = map_svg.selectAll(".unit_map_group").data(current_ship_data.units, d => d.id);
-    //exit, remove
-    my_group.exit().remove();
-    //enter new groups
-    enter = my_group.enter().append("g").attr("class","unit_map_group");
-    //append path and icon to new group
-    enter.append("g").attr("class","unit_map_path_group");
-    enter.append("text").attr("class","unit_map_icon fa");  //outline rect
-    //merge and remove
-    my_group = my_group.merge(enter);
-    //path properties
-    my_group.select(".unit_map_path_group")
-        .attr("id",function(d,i){return "map_path_group_" + i})
-        .attr("transform","translate(" + margin + "," + margin + ")")
-        .append("path")
-        .attr("id","map_path_0")
-        .attr("stroke",current_colour);
 
-    //icon properties
-    my_group.select(".unit_map_icon")
-        .attr("pointer-events","none")
-        .attr("id",function(d,i){return "map_icon_" + i})
-        .attr('font-size', hexRadius + 'px')
-        .attr("fill",current_colour)
-        .attr("opacity",0)
-        .text(d => icons[d.vessel_type])
-        .attr("x",function(d){
-          var my_points = get_points(d.start_move.hex_reference);
-          d.x = my_points[0][0] - (hexRadius*0.75);
-          d.y = my_points[0][1] + (hexRadius/3);
-          return d.x})
-        .attr("y",d => d.y)
-        .attr("transform","translate(" + margin + "," + margin + ")");
+    initialise_map_icons(current_ship_data.units)
+  }
 
-    function select_unit_icon(d,i){
-      //starts a group 'move' if not in the middle of one.
-      if(current_ship_data.units[current_unit].total_moves > 0  && current_ship_data.units[current_unit].submitted === false){
+  function initialise_map_icons(my_data){
+      // 3. hex svg icons and path groups
+      var map_svg = d3.select(".hex_svg").select(".icon_group");
+      //repeat for map units,
+      my_group = map_svg.selectAll(".unit_map_group").data(my_data, d => d.id);
+      //exit, remove
+      my_group.exit().remove();
+      //enter new groups
+      enter = my_group.enter().append("g").attr("class","unit_map_group");
+      //append path and icon to new group
+      enter.append("g").attr("class","unit_map_path_group");
+      enter.append("text").attr("class","unit_map_icon fa");  //outline rect
+      //merge and remove
+      my_group = my_group.merge(enter);
+      //path properties
+      my_group.select(".unit_map_path_group")
+          .attr("id",function(d,i){return "map_path_group_" + i})
+          .attr("transform","translate(" + margin + "," + margin + ")")
+          .append("path")
+          .attr("id","map_path_0")
+          .attr("stroke",function(d){
+              if(map_view === "player"){
+                  return current_colour
+              } else {
+                  return d.current_colour;
+              }
+          });
+
+      //icon properties
+      my_group.select(".unit_map_icon")
+          .attr("pointer-events","none")
+          .attr("id",function(d,i){return "map_icon_" + i})
+          .attr('font-size', hexRadius + 'px')
+          .attr("fill",function(d){
+              if(map_view === "player"){
+                  return current_colour;
+              } else {
+                  return d.current_colour;
+              }
+          })
+          .attr("opacity",function(d){
+              if(map_view === "player"){
+                  return 0
+              } else {
+                  return 1
+              }
+          })
+          .text(d => icons[d.vessel_type])
+          .attr("x",function(d){
+              var my_points = get_points(d.moves[0].hex_reference);
+              d.x = my_points[0][0] - (hexRadius*0.75);
+              d.y = my_points[0][1] + (hexRadius/3);
+              return d.x})
+          .attr("y",d => d.y)
+          .attr("transform","translate(" + margin + "," + margin + ")");
+
+  }
+function select_unit_icon(){
+    //starts a group 'move' if not in the middle of one.
+    if(current_ship_data.units[current_unit].total_moves > 0  && current_ship_data.units[current_unit].submitted === false){
         alert("You cannot switch groups until you've completed or cancelled your moves.")
-      } else {
+    } else {
         //return state of all element
         d3.selectAll(".unit_rect").attr("fill","white");
         d3.selectAll(".unit_icon").attr("fill","grey");
@@ -354,37 +418,31 @@ function ready(error, data,all_ship_data) {
         d3.selectAll(".unit_map_path_group path").attr("opacity",0);
         d3.select("#submit_text").attr("opacity",1);
         draw_moves(current_ship_data.units[current_unit].moves);
-        //change colour/button state if already submitted.
-        if(d.submitted === true){
-          d3.select("#submit_text").attr("opacity",0.2);
-        }
+
         //set correct colour for icons and path
-        d3.select("#panel_icon_" + i).attr("fill",current_colour).attr("opacity",1);
-        d3.select("#panel_label_" + i).attr("fill",current_colour).attr("opacity",1);
-        d3.select("#map_icon_" + i).attr("fill",current_colour).attr("opacity",1);
-        d3.selectAll("#map_path_group_" + i + " path").attr("opacity",1);
+        d3.select("#panel_icon_" + current_unit).attr("fill",current_colour).attr("opacity",1);
+        d3.select("#panel_label_" + current_unit).attr("fill",current_colour).attr("opacity",1);
+        d3.select("#map_icon_" + current_unit).attr("fill",current_colour).attr("opacity",1);
+        d3.selectAll("#map_path_group_" + current_unit + " path").attr("opacity",1);
         //set values on move panel and make it visible
-        d3.select("#group_name").text(d.name);
-        d3.select("#vessel_count").text(d.vessel_count);
-        d3.select("#vessel_type").text(d.vessel_type);
-        d3.select("#speed").text(d.current_speed);
-        d3.select("#hex_speed").text(d.current_hex_speed);
-        d3.select("#moves").text(d.total_moves + "/" + total_moves);
+        d3.select("#group_name").text(current_ship_data.units[current_unit].name);
+        d3.select("#vessel_count").text(current_ship_data.units[current_unit].vessel_count);
+        d3.select("#vessel_type").text(current_ship_data.units[current_unit].vessel_type);
+        d3.select("#speed").text(current_ship_data.units[current_unit].current_speed);
+        d3.select("#hex_speed").text(current_ship_data.units[current_unit].current_hex_speed);
+        d3.select("#moves").text(current_ship_data.units[current_unit].total_moves + "/" + total_moves);
         d3.selectAll(".move_panel").attr("visibility","visible");
 
         //set current unit, hex_column/row to starting position and moving to true
-        current_unit = i;
-        current_hex_column = +d.start_move.hex_reference.split("-")[1];
-        current_hex_row = +d.start_move.hex_reference.split("-")[0];
+        current_hex_column = +current_ship_data.units[current_unit].moves[0].hex_reference.split("-")[1];
+        current_hex_row = +current_ship_data.units[current_unit].moves[0].hex_reference.split("-")[0];
         moving = true;
         if(current_ship_data.units[current_unit].submitted === true){
-          draw_moves(current_ship_data.units[current_unit].moves)
+            draw_moves(current_ship_data.units[current_unit].moves)
         }
-      }
-
     }
-  }
 
+}
   function draw_hex_map(data){
 
     var chart_div = document.getElementById("test_hex");
@@ -487,6 +545,7 @@ function ready(error, data,all_ship_data) {
    }
 
 function replay_turn() {
+
    var changing = false;
 
   d3.selectAll(".unit_map_path_group path").attr("opacity", "0");
@@ -567,7 +626,13 @@ function play_animation() {
                 .append("path")
                 .attr("id", "map_path_" + move_positions[a][counter].path_id)
                 .attr("d", "")
-                .attr("stroke", current_colour)
+                .attr("stroke",function(d){
+                    if(map_view === "player"){
+                        return current_colour
+                    } else {
+                        return d.current_colour;
+                    }
+                })
                 .attr("stroke-dasharray", hex_speed + "," + hex_speed)
         }
         if(my_path.attr("stroke-dasharray") === null){
