@@ -1,72 +1,97 @@
+
+// fixed properties
 var icons = {"helicopter":'\uf533',"ship":'\uf21a',"sub":'\uf578'};
-var hexRadius = 0;
-var points = [];
-var true_points = [];
+var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
 var total_moves = 18;
+var margin = 30;
+var icon_step = 120; //gap between icon 'panels' on ships svg
+// properties populated when hex's are drawn
+var hexRadius = 0;
+var points = []; // used for d3.hexbin()
+var true_points = []; // true centers - used by get_points()
+var long_lats = {}; //
+// populated in response to interaction.
 var current_unit = 0;
 var current_hex_column = 0;
 var current_hex_row = 0;
-var moving = false;
 var current_colour = "";
-var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
-var margin = 30;
 var current_speed_index = 0;
-var long_lats = {};
+var current_ship_data = {};
+var moving = false;
 
 d3.queue()
     .defer(d3.csv,"data/hex_data.csv")
-    .defer(d3.json,"data/test_data.json")
+    .defer(d3.json,"data/test_data_white.json")
     .await(ready);
 
-//most of this based on https://www.visualcinnamon.com/2013/07/self-organizing-maps-creating-hexagonal.html
-function ready(error, data,ship_data) {
+function ready(error, data,all_ship_data) {
 
-  current_colour = ship_data.Force_Colour;
-  data = filter_data(data);
-  draw_hex_map(data,ship_data);
-  draw_unit_groups("test_ships",ship_data);
+
+  current_ship_data = all_ship_data.cells[0];
+  current_colour = current_ship_data.Force_Colour;
+  data = filter_data(data); // not a function to be proud of, but cuts down the map data.
+  draw_hex_map(data);
+  draw_unit_groups("test_ships");
   draw_moves_svg("moves_div");
-}
 
-function draw_moves_svg(div_id){
 
-  var chart_div = document.getElementById(div_id);
-  //set width and height.
-  var width = chart_div.clientWidth;
-  var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
+  d3.select("#cell_select")
+      .on("change",function(){
+        current_ship_data = all_ship_data.cells.filter(d => d.Force === this.value)[0];
+        current_colour = current_ship_data.Force_Colour;
+        current_unit = 0;
+        current_speed_index = 0;
+        initialise_cell_items()
+      })
+      .selectAll('option')
+      .data(all_ship_data.cells)
+      .enter()
+      .append('option')
+      .text(d => d.Force);
 
-  var svg;
 
-  if(d3.select(".moves_svg")._groups[0][0] == null){
-    //draw svg to div height and width
-    svg = d3.select("#" + div_id)
-        .append("svg")
-        .attr("class","moves_svg")
-        .attr("preserveAspectRatio", "none")
-        .attr("viewBox", "0 0 " + width + " " + height);
-
-  } else {
-    svg = d3.select(".moves_svg");
-  }
+    initialise_cell_items()
 
 }
-  function draw_unit_groups(div_id,ship_data){
+
+  // moves - just draw the svg
+  function draw_moves_svg(div_id){
 
     var chart_div = document.getElementById(div_id);
     //set width and height.
     var width = chart_div.clientWidth;
     var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
 
-    var icon_step = 120, svg;
+    if(d3.select(".moves_svg")._groups[0][0] == null){
+      //draw svg to div height and width
+      d3.select("#" + div_id)
+          .append("svg")
+          .attr("class","moves_svg")
+          .attr("preserveAspectRatio", "none")
+          .attr("viewBox", "0 0 " + width + " " + height);
+
+    }
+
+  }
+  // units - draw svg, move panel + submitted buttons, unit 'panels' (on move svg) and unit icon/path group combos (on hex svg)
+  function draw_unit_groups(div_id){
+
+    var chart_div = document.getElementById(div_id);
+    //set width and height.
+    var width = chart_div.clientWidth;
+    var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
+
+    var svg;
 
     if(d3.select(".ships_svg")._groups[0][0] == null){
-      //draw svg to div height and width
+      //1. draw svg to div height and width
       svg = d3.select("#" + div_id)
           .append("svg")
           .attr("class","ships_svg")
           .attr("preserveAspectRatio", "none")
           .attr("viewBox", "0 0 " + width + " " + height);
 
+      //2. draw move panel + submitted buttons
       var move_panel_width = 550;
       var move_panel_x = width - margin - move_panel_width;
       draw_move_panel(svg,move_panel_x,move_panel_width,height-(margin*2));
@@ -79,16 +104,141 @@ function draw_moves_svg(div_id){
       add_text(svg,move_panel_x-130+60,height-(margin*2)-17.5,"middle","SUBMIT MOVES","submitted_buttons","submit_moves_text");
 
       d3.select("#replay").on("click",function(){
-        replay_turn(ship_data.units)
-      })
+        replay_turn(current_ship_data.units)
+      });
       d3.selectAll(".submitted_buttons").attr("visibility","hidden");
     } else {
-      svg = d3.select(".ships_svg");
+      d3.select(".ships_svg");
     }
+
+    function draw_move_panel(svg,x,p_width,p_height){
+      //draw individual elements of move panel
+      var step = 20;
+      var x_step = 160;
+      //outline rect
+      add_rect(svg,p_width,p_height,x,margin,"move_panel");
+      //text on the left
+      add_text(svg,x+10,margin+step,"left","Group Name:","move_panel");
+      add_text(svg,x+10,margin+(step*2),"left","No. of Vessels:","move_panel");
+      add_text(svg,x+10,margin+(step*3),"left","Vessel Type:","move_panel");
+      add_text(svg,x+10,margin+ (step*4),"left","Current Speed:","move_panel");
+      add_text(svg,x+10,margin+ (step*5),"left","Speed per Hex Move:","move_panel");
+      add_text(svg,x+10+x_step,margin+step,"left","0","move_panel","group_name");
+      add_text(svg,x+10+x_step,margin+(step*2),"left","0","move_panel","vessel_count");
+      add_text(svg,x+10+x_step,margin+(step*3),"left","0","move_panel","vessel_type");
+      add_text(svg,x+10+x_step,margin+ (step*4),"left","0","move_panel","speed");
+      add_text(svg,x+10+x_step,margin+ (step*5),"left","0","move_panel","hex_speed");
+      //buttons
+      add_rect(svg,80,25,x+p_width-90,p_height-5,"move_panel","restart");
+      add_text(svg,x+p_width-50,p_height+12.5,"middle","RESTART","move_panel","restart_text");
+
+      add_rect(svg,80,25,x+p_width-180,p_height-5,"move_panel","submit");
+      add_text(svg,x+p_width-140,p_height+12.5,"middle","SUBMIT","move_panel","submit_text");
+
+      add_rect(svg,120,25,x+p_width-310,p_height-5,"move_panel","change_speed");
+      add_text(svg,x+p_width-250,p_height+12.5,"middle","CHANGE SPEED","move_panel");
+      //current move count
+      add_text(svg,x+p_width-90,margin+65,"middle","0/" + total_moves,"move_panel","moves","70px");
+
+      //set button functionality
+
+      d3.select("#restart").on("click",function(){
+        d3.select("#submit_text").attr("opacity",1);
+        d3.selectAll(".submitted_buttons").attr("visibility","hidden");
+        //reset elements
+        current_ship_data.units[current_unit].total_moves = 0;  //total moves
+        current_ship_data.units[current_unit].submitted = false; //submitted
+        d3.select("#panel_icon_" + current_unit).attr("fill",current_colour).attr("opacity",1);  //panel icon
+        d3.select("#map_icon_" + current_unit)  //map icon - appearance and position
+            .attr("fill",current_colour)
+            .attr("opacity",1)
+            .attr("x",function(d){
+              var my_points = get_points(d.start_move.hex_reference);
+              d.x = my_points[0][0]  - (hexRadius*0.75);
+              d.y = my_points[0][1] + (hexRadius/3);
+              return d.x})
+            .attr("y",d => d.y);
+        d3.selectAll("#map_path_group_" + current_unit + " path").attr("d","M0 0").attr("stroke",current_colour); //map path
+        d3.select("#moves").text("0/" + total_moves); //moves tex element
+        current_ship_data.units[current_unit].moves = [current_ship_data.units[current_unit].moves[0]]; //moves (start position only)
+        draw_moves(current_ship_data.units[current_unit].moves);
+        current_hex_column = +current_ship_data.units[current_unit].start_move.hex_reference.split("-")[1]; //current hex column and row
+        current_hex_row = +current_ship_data.units[current_unit].start_move.hex_reference.split("-")[0];
+      });
+
+      d3.select("#submit").on("click",function(){
+        //only allow if submitted is false.
+        if(current_ship_data.units[current_unit].submitted === false){
+          //set submitted to tru and change appearance of icons, paths and button
+          current_ship_data.units[current_unit].submitted = true;
+          d3.selectAll("#map_path_group_" + current_unit + " path");
+          d3.select("#panel_icon_" + current_unit).attr("opacity",1);
+          d3.select("#panel_label_" + current_unit);
+          d3.select("#submit_text").attr("opacity",0.2);
+
+          if(check_submitted() === true){
+            d3.selectAll(".submitted_buttons").attr("visibility","visible");
+            d3.selectAll(".unit_icon").attr("fill",current_colour);
+              d3.selectAll(".move_panel").attr("visibility","hidden")
+          }
+        }
+      });
+
+      d3.select("#change_speed").on("click",function(){
+        var speeds_available = current_ship_data.units[current_unit].available_speeds;
+        if(speeds_available.length > 1){
+          current_speed_index += 1;
+          if(current_speed_index === speeds_available.length){
+            current_speed_index = 0;
+          }
+          current_ship_data.units[current_unit].current_speed = speeds_available[current_speed_index].speed;
+          current_ship_data.units[current_unit].current_hex_speed = speeds_available[current_speed_index].hex_speed;
+          d3.select("#speed").text(speeds_available[current_speed_index].speed);
+          d3.select("#hex_speed").text(speeds_available[current_speed_index].hex_speed);
+          current_ship_data.units[current_unit].current_path_id += 1;
+          d3.select("#map_path_group_" + current_unit)
+              .append("path")
+              .attr("id","map_path_" + current_ship_data.units[current_unit].current_path_id)
+              .attr("stroke",current_colour);
+        }
+
+      })
+
+    }
+
+  }
+
+  function check_submitted(){
+      var all_submitted = current_ship_data.units.filter(d => d.submitted === true);
+
+      if(all_submitted.length === current_ship_data.units.length){
+          return true
+      } else {
+          return false
+      }
+
+  }
+
+
+  function initialise_cell_items(){
+
+      if(check_submitted() === false){
+          d3.selectAll(".submitted_buttons").attr("visibility","hidden");
+      } else {
+          d3.selectAll(".submitted_buttons").attr("visibility","visible");
+      }
+      d3.selectAll(".unit_icon").attr("fill",current_colour);
+      d3.selectAll(".move_panel").attr("visibility","hidden");
+      draw_moves([]);
+
+    var svg = d3.select(".ships_svg");
+    var height = +svg.attr("viewBox").split(" ")[3];
+
+    // 2. move panel icon, containing rectangle and labels
     var my_group,enter;
     //now bind data and create group elements.
     //build unit
-    my_group = svg.selectAll(".unit_group").data(ship_data.units);
+    my_group = svg.selectAll(".unit_group").data(current_ship_data.units, d=> d.id);
     //exit, remove
     my_group.exit().remove();
     //enter new groups
@@ -118,25 +268,25 @@ function draw_moves_svg(div_id){
     my_group.select(".unit_icon")
         .attr("id",function(d,i){return "panel_icon_" + i})
         .attr("pointer-events","none")
-          .attr('font-size', '40px')
-          .attr("opacity","0.8")
-          .attr("fill",ship_data.Force_Colour)
-          .text(d => icons[d.vessel_type])
-          .attr("x",function(d,i){return margin + 20 + (icon_step*i)})
-          .attr("y",(height/2));
+        .attr('font-size', '40px')
+        .attr("opacity","0.8")
+        .attr("fill",current_colour)
+        .text(d => icons[d.vessel_type])
+        .attr("x",function(d,i){return margin + 20 + (icon_step*i)})
+        .attr("y",(height/2));
     //label properties
     my_group.select(".unit_label")
         .attr("id",function(d,i){return "panel_label_" + i})
         .attr("pointer-events","none")
-        .attr("fill",ship_data.Force_Colour)
+        .attr("fill",current_colour)
         .text(d => d.name)
         .attr("x",function(d,i){return margin + (icon_step*i) + 45})
         .attr("y",(height/2)+35)
         .attr("text-anchor","middle");
-    //select map svg
+    // 3. hex svg icons and path groups
     var map_svg = d3.select(".hex_svg").select(".icon_group");
     //repeat for map units,
-    my_group = map_svg.selectAll(".unit_map_group").data(ship_data.units);
+    my_group = map_svg.selectAll(".unit_map_group").data(current_ship_data.units, d => d.id);
     //exit, remove
     my_group.exit().remove();
     //enter new groups
@@ -148,18 +298,18 @@ function draw_moves_svg(div_id){
     my_group = my_group.merge(enter);
     //path properties
     my_group.select(".unit_map_path_group")
-            .attr("id",function(d,i){return "map_path_group_" + i})
-            .attr("transform","translate(" + margin + "," + margin + ")")
+        .attr("id",function(d,i){return "map_path_group_" + i})
+        .attr("transform","translate(" + margin + "," + margin + ")")
         .append("path")
         .attr("id","map_path_0")
-        .attr("stroke",ship_data.Force_Colour)
+        .attr("stroke",current_colour);
 
     //icon properties
     my_group.select(".unit_map_icon")
         .attr("pointer-events","none")
         .attr("id",function(d,i){return "map_icon_" + i})
         .attr('font-size', hexRadius + 'px')
-        .attr("fill",ship_data.Force_Colour)
+        .attr("fill",current_colour)
         .attr("opacity",0)
         .text(d => icons[d.vessel_type])
         .attr("x",function(d){
@@ -170,191 +320,21 @@ function draw_moves_svg(div_id){
         .attr("y",d => d.y)
         .attr("transform","translate(" + margin + "," + margin + ")");
 
-
-    function draw_move_panel(svg,x,p_width,p_height){
-      //draw individual elements of move panel
-      var step = 20;
-      var x_step = 160;
-      //outline rect
-      add_rect(svg,p_width,p_height,x,margin,"move_panel");
-      //text on the left
-      add_text(svg,x+10,margin+step,"left","Group Name:","move_panel");
-      add_text(svg,x+10,margin+(step*2),"left","No. of Vessels:","move_panel");
-      add_text(svg,x+10,margin+(step*3),"left","Vessel Type:","move_panel");
-      add_text(svg,x+10,margin+ (step*4),"left","Current Speed:","move_panel");
-      add_text(svg,x+10,margin+ (step*5),"left","Speed per Hex Move:","move_panel");
-      add_text(svg,x+10+x_step,margin+step,"left","0","move_panel","group_name");
-      add_text(svg,x+10+x_step,margin+(step*2),"left","0","move_panel","vessel_count");
-      add_text(svg,x+10+x_step,margin+(step*3),"left","0","move_panel","vessel_type");
-      add_text(svg,x+10+x_step,margin+ (step*4),"left","0","move_panel","speed");
-      add_text(svg,x+10+x_step,margin+ (step*5),"left","0","move_panel","hex_speed");
-      //buttons
-      add_rect(svg,80,25,x+p_width-90,p_height-5,"move_panel","restart");
-      add_text(svg,x+p_width-50,p_height+12.5,"middle","RESTART","move_panel","restart_text");
-
-      add_rect(svg,80,25,x+p_width-180,p_height-5,"move_panel","submit");
-      add_text(svg,x+p_width-140,p_height+12.5,"middle","SUBMIT","move_panel","submit_text");
-
-      add_rect(svg,120,25,x+p_width-310,p_height-5,"move_panel","change_speed");
-      add_text(svg,x+p_width-250,p_height+12.5,"middle","CHANGE SPEED","move_panel");
-      //current move count
-      add_text(svg,x+p_width-90,margin+65,"middle","0/" + total_moves,"move_panel","moves","70px")
-
-      //set button functionality
-
-      d3.select("#restart").on("click",function(){
-        d3.select("#submit_text").attr("opacity",1);
-        d3.selectAll(".submitted_buttons").attr("visibility","hidden");
-        //reset elements
-        ship_data.units[current_unit].total_moves = 0;  //total moves
-        ship_data.units[current_unit].submitted = false; //submitted
-        d3.select("#panel_icon_" + current_unit).attr("fill",ship_data.Force_Colour).attr("opacity",1);  //panel icon
-        d3.select("#map_icon_" + current_unit)  //map icon - appearance and position
-            .attr("fill",ship_data.Force_Colour)
-            .attr("opacity",1)
-            .attr("x",function(d){
-              var my_points = get_points(d.start_move.hex_reference);
-              d.x = my_points[0][0]  - (hexRadius*0.75);
-              d.y = my_points[0][1] + (hexRadius/3);
-              return d.x})
-            .attr("y",d => d.y);
-        d3.selectAll("#map_path_group_" + current_unit + " path").attr("d","M0 0").attr("stroke",ship_data.Force_Colour); //map path
-        d3.select("#moves").text("0/" + total_moves); //moves tex element
-        ship_data.units[current_unit].moves = [ship_data.units[current_unit].moves[0]]; //moves (start position only)
-        draw_moves(ship_data.units[current_unit].moves)
-        current_hex_column = +ship_data.units[current_unit].start_move.hex_reference.split("-")[1]; //current hex column and row
-        current_hex_row = +ship_data.units[current_unit].start_move.hex_reference.split("-")[0];
-      });
-
-      d3.select("#submit").on("click",function(){
-        //only allow if submitted is false.
-        if(ship_data.units[current_unit].submitted === false){
-          //set submitted to tru and change appearance of icons, paths and button
-          ship_data.units[current_unit].submitted = true;
-          d3.selectAll("#map_path_group_" + current_unit + " path").attr("stroke","purple");
-          d3.select("#map_icon_" + current_unit).attr("fill","purple");
-          d3.select("#panel_icon_" + current_unit).attr("fill","purple").attr("opacity",1);
-          d3.select("#panel_label_" + current_unit).attr("fill","purple")
-          d3.select("#submit_text").attr("opacity",0.2);
-
-          var all_submitted = ship_data.units.filter(d => d.submitted === true);
-          if(all_submitted.length === ship_data.units.length){
-            d3.selectAll(".submitted_buttons").attr("visibility","visible");
-          }
-        }
-      });
-
-      d3.select("#change_speed").on("click",function(){
-        var speeds_available = ship_data.units[current_unit].available_speeds;
-        if(speeds_available.length > 1){
-          current_speed_index += 1;
-          if(current_speed_index === speeds_available.length){
-            current_speed_index = 0;
-          }
-          ship_data.units[current_unit].current_speed = speeds_available[current_speed_index].speed;
-          ship_data.units[current_unit].current_hex_speed = speeds_available[current_speed_index].hex_speed;
-          d3.select("#speed").text(speeds_available[current_speed_index].speed);
-          d3.select("#hex_speed").text(speeds_available[current_speed_index].hex_speed);
-          ship_data.units[current_unit].current_path_id += 1;
-          d3.select("#map_path_group_" + current_unit)
-              .append("path")
-              .attr("id","map_path_" + ship_data.units[current_unit].current_path_id)
-              .attr("stroke",ship_data.Force_Colour);
-        }
-
-      })
-
-    }
-
-
-    function replay_turn(all_units){
-      var counter = 0,move_positions={}, paths={},changing=false,previous_co_ords;
-
-      d3.selectAll(".unit_map_path_group path").attr("opacity","0");
-      d3.selectAll(".unit_map_icon").attr("opacity","0");
-      for(a in all_units){;
-        counter = 0;
-        paths[a] = "";
-        move_positions[a] = {}
-        for(m in all_units[a].moves){
-          var speed = all_units[a].moves[m].hex_speed;
-          for (i = 1; i <= speed; i++) {
-            if(i == 1){
-              changing = true;
-            } else {
-              changing = false
-            }
-            move_positions[a][counter] = {
-              icon_position: all_units[a].moves[m].hex_reference,
-              path_id: all_units[a].moves[m].current_path_id,
-              changing_path: changing
-            }
-            counter += 1
-          }
-        }
-      }
-      counter = 0;
-
-      var my_animation = setInterval(play_animation, 400);
-
-      function play_animation() {
-        if(counter === 0){
-          d3.selectAll(".unit_map_path_group path").attr("d","").attr("opacity","1").attr("stroke","purple");
-          d3.selectAll(".unit_map_icon").attr("opacity","1").attr("fill","purple");
-        }
-        for(a in all_units){
-          if(move_positions[a][counter] !== undefined){
-            var co_ords = get_points(move_positions[a][counter].icon_position);
-            d3.select("#map_icon_" + a)
-                .attr("x",co_ords[0][0]  - (hexRadius*0.75))
-                .attr("y",co_ords[0][1] + (hexRadius/3));
-            if(move_positions[a][counter].changing_path === true){
-              var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
-
-              if(path_string.includes("M") === false){
-                if(move_positions[a][counter].path_id === 0){
-                  paths[a] += "M" + co_ords[0][0] + " " + co_ords[0][1];
-                } else {
-                  var previous_co_ords = get_points(move_positions[a][counter-1].icon_position);
-                  paths[a] = " M " + previous_co_ords[0][0] + " " + previous_co_ords[0][1] + " L " + co_ords[0][0] + " " + co_ords[0][1];
-                }
-              } else {
-                paths[a] += " L" + co_ords[0][0] + " " + co_ords[0][1]
-              }
-              d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d",paths[a]);
-
-            }
-
-          };
-
-        };
-
-        counter += 1;
-        if(counter > total_moves){
-          clearInterval(my_animation);
-        }
-      }
-
-
-    }
     function select_unit_icon(d,i){
       //starts a group 'move' if not in the middle of one.
-      if(ship_data.units[current_unit].total_moves > 0  && ship_data.units[current_unit].submitted === false){
+      if(current_ship_data.units[current_unit].total_moves > 0  && current_ship_data.units[current_unit].submitted === false){
         alert("You cannot switch groups until you've completed or cancelled your moves.")
       } else {
         //return state of all element
         d3.selectAll(".unit_rect").attr("fill","white");
         d3.selectAll(".unit_icon").attr("fill","grey");
-        d3.selectAll(".unit_map_icon").attr("fill",ship_data.Force_Colour).attr("opacity",0);
+        d3.selectAll(".unit_map_icon").attr("fill",current_colour).attr("opacity",0);
         d3.selectAll(".unit_map_path_group path").attr("opacity",0);
         d3.select("#submit_text").attr("opacity",1);
-        draw_moves(ship_data.units[current_unit].moves)
+        draw_moves(current_ship_data.units[current_unit].moves);
         //change colour/button state if already submitted.
         if(d.submitted === true){
-          current_colour = "purple";
           d3.select("#submit_text").attr("opacity",0.2);
-        } else {
-          current_colour = ship_data.Force_Colour;
         }
         //set correct colour for icons and path
         d3.select("#panel_icon_" + i).attr("fill",current_colour).attr("opacity",1);
@@ -375,44 +355,15 @@ function draw_moves_svg(div_id){
         current_hex_column = +d.start_move.hex_reference.split("-")[1];
         current_hex_row = +d.start_move.hex_reference.split("-")[0];
         moving = true;
-        if(ship_data.units[current_unit].submitted === true){
-          draw_moves(ship_data.units[current_unit].moves)
+        if(current_ship_data.units[current_unit].submitted === true){
+          draw_moves(current_ship_data.units[current_unit].moves)
         }
       }
 
     }
   }
 
-
-  function draw_moves(moves){
-
-
-    var moves_svg = d3.select(".moves_svg");
-    //now bind data and create group elements.
-    //build unit
-    var my_group = moves_svg.selectAll(".moves_text_group").data(moves);
-    //exit, remove
-    my_group.exit().remove();
-    //enter new groups
-    enter = my_group.enter().append("g").attr("class","moves_text_group");
-    //append rect, icon and label to new group
-    enter.append("text").attr("class","moves_text");
-    //merge and remove
-    my_group = my_group.merge(enter);
-
-    my_group.select(".moves_text")
-            .attr("x",5)
-            .attr("y",(d,i) => (20 * (+i)))
-            .text(function(d,i){
-              if(+i > 0){
-                return i + ": " + d.hex_reference + " to " + d.hex_reference + " speed=" +  d.hex_speed
-              }
-            });
-  }
-
-
-
-  function draw_hex_map(data,ship_data){
+  function draw_hex_map(data){
 
     var chart_div = document.getElementById("test_hex");
     //set width and height.
@@ -426,7 +377,7 @@ function draw_moves_svg(div_id){
           .append("svg")
           .attr("class","hex_svg")
           .attr("preserveAspectRatio", "xMidYMid meet")
-          .attr("viewBox", "0 0 " + width + " " + height )
+          .attr("viewBox", "0 0 " + width + " " + height );
 
       hex_group = svg.append("g").attr("class","hex_group");
       svg.append("g").attr("class","icon_group");
@@ -439,7 +390,7 @@ function draw_moves_svg(div_id){
     columns = d3.extent(data,d => +d.column);
 
     var hex_width_max = width/((columns[1]*2)+2);
-    var hex_height_max = height/((rows[1]*1.5)+3)
+    var hex_height_max = height/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
 
@@ -504,15 +455,123 @@ function draw_moves_svg(div_id){
             var this_column = +co_ords.split("-")[1];
 
             if(check_adjacent(this_row,this_column) === true){
-              new_move(ship_data.units[current_unit],co_ords,this_row,this_column,this)
+              new_move(current_ship_data.units[current_unit],co_ords,this_row,this_column,this)
             } else {
               console.log('not adjacent')
             }
           }
         })
 
+   }
+
+function replay_turn(all_units) {
+  var counter = 0, move_positions = {}, paths = {}, changing = false;
+
+  d3.selectAll(".unit_map_path_group path").attr("opacity", "0");
+  d3.selectAll(".unit_map_icon").attr("opacity", "0");
+  for (a in all_units) {
+    counter = 0;
+    paths[a] = "";
+    move_positions[a] = {};
+    for (m in all_units[a].moves) {
+      var speed = all_units[a].moves[m].hex_speed;
+      for (i = 1; i <= speed; i++) {
+        if (i === 1) {
+          changing = true;
+        } else {
+          changing = false
+        }
+        move_positions[a][counter] = {
+          icon_position: all_units[a].moves[m].hex_reference,
+          path_id: all_units[a].moves[m].current_path_id,
+          changing_path: changing,
+            hex_speed: speed
+        };
+        counter += 1
+      }
+    }
+  }
+
+  counter = 0;
+
+  var my_animation = setInterval(play_animation, 400);
+
+  function check_path_exists(a,counter,hex_speed){
+      var my_path = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id);
+      if(my_path._groups[0][0] === undefined) {
+          my_path = d3.select("#map_path_group_" + a)
+              .append("path")
+              .attr("id", "map_path_" + move_positions[a][counter].path_id)
+              .attr("d", "")
+              .attr("stroke", current_colour)
+              .attr("stroke-dasharray", hex_speed + "," + hex_speed)
+      }
+      if(my_path.attr("stroke-dasharray") === null){
+          my_path.attr("stroke-dasharray",hex_speed + "," + hex_speed)
+      }
 
   }
+  function play_animation() {
+    if (counter === 0) {
+      d3.selectAll(".unit_map_path_group path").attr("d", "").attr("opacity", "1");
+      d3.selectAll(".unit_map_icon").attr("opacity", "1");
+    }
+    for (a in all_units) {
+      if (move_positions[a][counter] !== undefined) {
+        var co_ords = get_points(move_positions[a][counter].icon_position);
+        d3.select("#map_icon_" + a)
+            .attr("x", co_ords[0][0] - (hexRadius * 0.75))
+            .attr("y", co_ords[0][1] + (hexRadius / 3));
+        if (move_positions[a][counter].changing_path === true) {
+           check_path_exists(a,counter,move_positions[a][counter].hex_speed);
+          var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
+
+          if (path_string.includes("M") === false) {
+            if (move_positions[a][counter].path_id === 0) {
+              paths[a] += "M" + co_ords[0][0] + " " + co_ords[0][1];
+            } else {
+              var previous_co_ords = get_points(move_positions[a][counter - 1].icon_position);
+              paths[a] = " M " + previous_co_ords[0][0] + " " + previous_co_ords[0][1] + " L " + co_ords[0][0] + " " + co_ords[0][1];
+            }
+          } else {
+            paths[a] += " L" + co_ords[0][0] + " " + co_ords[0][1]
+          }
+          d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d", paths[a]);
+        }
+      }
+    }
+    counter += 1;
+    if (counter > total_moves) {
+      clearInterval(my_animation);
+    }
+  }
+}
+
+  function draw_moves(moves){
+
+    var moves_svg = d3.select(".moves_svg");
+    //now bind data and create group elements.
+    //build unit
+    var my_group = moves_svg.selectAll(".moves_text_group").data(moves);
+    //exit, remove
+    my_group.exit().remove();
+    //enter new groups
+    enter = my_group.enter().append("g").attr("class","moves_text_group");
+    //append rect, icon and label to new group
+    enter.append("text").attr("class","moves_text");
+    //merge and remove
+    my_group = my_group.merge(enter);
+
+    my_group.select(".moves_text")
+            .attr("x",5)
+            .attr("y",(d,i) => (20 * (+i)))
+            .text(function(d,i){
+              if(+i > 0){
+                return i + ": " + d.hex_reference + " to " + d.hex_reference + " speed=" +  d.hex_speed
+              }
+    });
+  }
+
 
 
 function get_points(start_position){
@@ -534,7 +593,7 @@ function new_move(my_data,co_ords,row,column){
         .attr("x",my_points[0][0] - (hexRadius*0.75))
         .attr("y",my_points[0][1] + (hexRadius/3));
 
-    reset_path(my_data.moves,my_data.current_path_id)
+    reset_path(my_data.moves,my_data.current_path_id);
     current_hex_column = column;
     current_hex_row = row;
     my_data.total_moves += my_data.current_hex_speed;
@@ -556,9 +615,9 @@ function reset_path(moves,current_path_id){
     if(moves[m].current_path_id === current_path_id){
       if(current_path_id !== 0 && changing === true){
         var previous_moves = get_points(current_move.hex_reference);
-        new_path = "M" + previous_moves[0][0] + " " + previous_moves[0][1]
+        new_path = "M" + previous_moves[0][0] + " " + previous_moves[0][1];
         changing = false;
-      };
+      }
       var current_moves = get_points(moves[m].hex_reference);
       if(m === "0"){
         new_path = "M" + current_moves[0][0] + " " + current_moves[0][1]
@@ -569,7 +628,7 @@ function reset_path(moves,current_path_id){
       changing = true;
       current_move = moves[m];
     }
-  };
+  }
 
   d3.select("#map_path_group_" + current_unit).select(" #map_path_" + current_path_id)
       .attr("stroke-dasharray",moves[m].hex_speed + "," + moves[m].hex_speed)

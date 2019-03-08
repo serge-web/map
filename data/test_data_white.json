@@ -5,6 +5,7 @@
         "Force_Colour": "#023858",
         "task_number": 0,
         "units": [{
+            "id": "blue_1_0",
             "name": "core_group",
             "vessel_count": 10,
             "vessel_type": "ship",
@@ -27,7 +28,7 @@
                 {"speed": "10kph","hex_speed": 4}
             ]
         },
-            {
+            {   "id": "blue_1_1",
                 "name": "sub_group",
                 "vessel_count": 1,
                 "vessel_type": "helicopter",
@@ -53,9 +54,10 @@
     },
     {
         "Force": "blue_2",
-        "Force_Colour": "#045a8d",
+        "Force_Colour": "#74a9cf",
         "task_number": 0,
         "units": [{
+            "id": "blue_2_0",
             "name": "submarine",
             "vessel_count": 1,
             "vessel_type": "sub",
@@ -78,7 +80,7 @@
                 {"speed": "10kph","hex_speed": 3}
             ]
         },
-            {
+            {"id": "blue_2_1",
                 "name": "ship_task_force",
                 "vessel_count": 12,
                 "vessel_type": "helicopter",
@@ -100,6 +102,7 @@
                     {"speed": "20kph","hex_speed": 1}
                 ]
             }, {
+                "id": "blue_2_3",
                 "name": "helicopter",
                 "vessel_count": 1,
                 "vessel_type": "helicopter",
@@ -128,6 +131,7 @@
         "Force_Colour": "#cb181d",
         "task_number": 0,
         "units": [{
+            "id": "red_0",
             "name": "submarine",
             "vessel_count": 1,
             "vessel_type": "sub",
@@ -150,7 +154,7 @@
                 {"speed": "10kph","hex_speed": 3}
             ]
         },
-            {
+            {"id": "red_1",
                 "name": "ship_task_force",
                 "vessel_count": 12,
                 "vessel_type": "helicopter",
