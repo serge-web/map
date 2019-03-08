@@ -18,6 +18,11 @@ var current_colour = "";
 var current_speed_index = 0;
 var current_ship_data = {};
 var moving = false;
+var my_animation;
+var move_positions = {};
+var paths = {};
+var animation_units = [];
+var counter = 0;  // used for animation, needs to be global for pause button to work (I think)
 
 d3.queue()
     .defer(d3.csv,"data/hex_data.csv")
@@ -100,11 +105,28 @@ function ready(error, data,all_ship_data) {
       add_rect(svg,120,25,move_panel_x-130,height-(margin*2)-5,"submitted_buttons","replay");
       add_text(svg,move_panel_x-130+60,height-(margin*2)+12.5,"middle","REPLAY TURN","submitted_buttons","replay_text");
 
-      add_rect(svg,120,25,move_panel_x-130,height-(margin*2)-35,"submitted_buttons","submit_moves");
-      add_text(svg,move_panel_x-130+60,height-(margin*2)-17.5,"middle","SUBMIT MOVES","submitted_buttons","submit_moves_text");
+      add_rect(svg,120,25,move_panel_x-130,height-(margin*2)-35,"pause_button","pause");
+      add_text(svg,move_panel_x-130+60,height-(margin*2)-17.5,"middle","PAUSE","pause_button","pause_text");
+
+      add_rect(svg,120,25,move_panel_x-130,height-(margin*2)-65,"submitted_buttons","submit_moves");
+      add_text(svg,move_panel_x-130+60,height-(margin*2)-47.5,"middle","SUBMIT MOVES","submitted_buttons","submit_moves_text");
+
+      d3.selectAll(".pause_button").attr("visibility","hidden");
+
+      d3.select("#pause").on("click",function(d){
+          if(d3.select("#pause_text").text() == "PAUSE"){
+              clearInterval(my_animation);
+              d3.select("#pause_text").text("RESTART")
+          } else {
+              d3.select("#pause_text").text("PAUSE")
+              my_animation = setInterval(play_animation, 400);
+
+          }
+      })
 
       d3.select("#replay").on("click",function(){
-        replay_turn(current_ship_data.units)
+            animation_units = current_ship_data.units;
+            replay_turn();
       });
       d3.selectAll(".submitted_buttons").attr("visibility","hidden");
     } else {
@@ -464,17 +486,18 @@ function ready(error, data,all_ship_data) {
 
    }
 
-function replay_turn(all_units) {
-  var counter = 0, move_positions = {}, paths = {}, changing = false;
+function replay_turn() {
+   var changing = false;
 
   d3.selectAll(".unit_map_path_group path").attr("opacity", "0");
   d3.selectAll(".unit_map_icon").attr("opacity", "0");
-  for (a in all_units) {
+
+  for (a in animation_units) {
     counter = 0;
     paths[a] = "";
     move_positions[a] = {};
-    for (m in all_units[a].moves) {
-      var speed = all_units[a].moves[m].hex_speed;
+    for (m in animation_units[a].moves) {
+      var speed = animation_units[a].moves[m].hex_speed;
       for (i = 1; i <= speed; i++) {
         if (i === 1) {
           changing = true;
@@ -482,8 +505,8 @@ function replay_turn(all_units) {
           changing = false
         }
         move_positions[a][counter] = {
-          icon_position: all_units[a].moves[m].hex_reference,
-          path_id: all_units[a].moves[m].current_path_id,
+          icon_position: animation_units[a].moves[m].hex_reference,
+          path_id: animation_units[a].moves[m].current_path_id,
           changing_path: changing,
             hex_speed: speed
         };
@@ -494,57 +517,64 @@ function replay_turn(all_units) {
 
   counter = 0;
 
-  var my_animation = setInterval(play_animation, 400);
+  my_animation = setInterval(play_animation, 400);
 
-  function check_path_exists(a,counter,hex_speed){
-      var my_path = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id);
-      if(my_path._groups[0][0] === undefined) {
-          my_path = d3.select("#map_path_group_" + a)
-              .append("path")
-              .attr("id", "map_path_" + move_positions[a][counter].path_id)
-              .attr("d", "")
-              .attr("stroke", current_colour)
-              .attr("stroke-dasharray", hex_speed + "," + hex_speed)
-      }
-      if(my_path.attr("stroke-dasharray") === null){
-          my_path.attr("stroke-dasharray",hex_speed + "," + hex_speed)
-      }
 
-  }
-  function play_animation() {
+}
+
+function play_animation() {
     if (counter === 0) {
-      d3.selectAll(".unit_map_path_group path").attr("d", "").attr("opacity", "1");
-      d3.selectAll(".unit_map_icon").attr("opacity", "1");
+        d3.selectAll(".unit_map_path_group path").attr("d", "").attr("opacity", "1");
+        d3.selectAll(".unit_map_icon").attr("opacity", "1");
+        d3.select("#moves").attr("visibility","visible").text("0/" + total_moves);
+        d3.selectAll(".pause_button").attr("visibility","visible");
     }
-    for (a in all_units) {
-      if (move_positions[a][counter] !== undefined) {
-        var co_ords = get_points(move_positions[a][counter].icon_position);
-        d3.select("#map_icon_" + a)
-            .attr("x", co_ords[0][0] - (hexRadius * 0.75))
-            .attr("y", co_ords[0][1] + (hexRadius / 3));
-        if (move_positions[a][counter].changing_path === true) {
-           check_path_exists(a,counter,move_positions[a][counter].hex_speed);
-          var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
+    d3.select("#moves").text(counter + "/" + total_moves)
+    for (a in animation_units) {
+        if (move_positions[a][counter] !== undefined) {
+            var co_ords = get_points(move_positions[a][counter].icon_position);
+            d3.select("#map_icon_" + a)
+                .attr("x", co_ords[0][0] - (hexRadius * 0.75))
+                .attr("y", co_ords[0][1] + (hexRadius / 3));
+            if (move_positions[a][counter].changing_path === true) {
+                check_path_exists(a,counter,move_positions[a][counter].hex_speed);
+                var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
 
-          if (path_string.includes("M") === false) {
-            if (move_positions[a][counter].path_id === 0) {
-              paths[a] += "M" + co_ords[0][0] + " " + co_ords[0][1];
-            } else {
-              var previous_co_ords = get_points(move_positions[a][counter - 1].icon_position);
-              paths[a] = " M " + previous_co_ords[0][0] + " " + previous_co_ords[0][1] + " L " + co_ords[0][0] + " " + co_ords[0][1];
+                if (path_string.includes("M") === false) {
+                    if (move_positions[a][counter].path_id === 0) {
+                        paths[a] += "M" + co_ords[0][0] + " " + co_ords[0][1];
+                    } else {
+                        var previous_co_ords = get_points(move_positions[a][counter - 1].icon_position);
+                        paths[a] = " M " + previous_co_ords[0][0] + " " + previous_co_ords[0][1] + " L " + co_ords[0][0] + " " + co_ords[0][1];
+                    }
+                } else {
+                    paths[a] += " L" + co_ords[0][0] + " " + co_ords[0][1]
+                }
+                d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d", paths[a]);
             }
-          } else {
-            paths[a] += " L" + co_ords[0][0] + " " + co_ords[0][1]
-          }
-          d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d", paths[a]);
         }
-      }
     }
     counter += 1;
     if (counter > total_moves) {
-      clearInterval(my_animation);
+        d3.selectAll(".pause_button").attr("visibility","hidden");
+        clearInterval(my_animation);
     }
-  }
+
+    function check_path_exists(a,counter,hex_speed){
+        var my_path = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id);
+        if(my_path._groups[0][0] === undefined) {
+            my_path = d3.select("#map_path_group_" + a)
+                .append("path")
+                .attr("id", "map_path_" + move_positions[a][counter].path_id)
+                .attr("d", "")
+                .attr("stroke", current_colour)
+                .attr("stroke-dasharray", hex_speed + "," + hex_speed)
+        }
+        if(my_path.attr("stroke-dasharray") === null){
+            my_path.attr("stroke-dasharray",hex_speed + "," + hex_speed)
+        }
+
+    }
 }
 
   function draw_moves(moves){
