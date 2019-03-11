@@ -24,6 +24,8 @@ var paths = {};
 var animation_units = [];
 var counter = 0;  // used for animation, needs to be global for pause button to work (I think)
 var map_view = "player";  //currently player or observer.
+var zoom = d3.zoom().scaleExtent([1, 32]);
+
 
 d3.queue()
     .defer(d3.csv,"data/hex_data.csv")
@@ -34,6 +36,7 @@ function ready(error, data,all_ship_data) {
 
 
   data = filter_data(data); // not a function to be proud of, but cuts down the map data.
+  draw_zoom_svg("zoom_div");
   draw_hex_map(data);
 
   d3.selectAll(".view_type")
@@ -96,6 +99,31 @@ function ready(error, data,all_ship_data) {
 }
 
 
+// moves - just draw the svg
+function draw_zoom_svg(div_id){
+
+    var chart_div = document.getElementById(div_id);
+    //set width and height.
+    var width = chart_div.clientWidth;
+    var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
+
+    //draw svg to div height and width
+   var svg = d3.select("#" + div_id)
+        .append("svg")
+        .attr("class","zoom_svg")
+        .attr("width",width)
+        .attr("height",height);
+
+    add_rect(svg,80,25,10,(height/2)-12.5,"zoom_button","zoom_in");
+    add_text(svg,50,(height/2) + 6,"middle","ZOOM IN","zoom_button","zoom_in_text");
+
+    add_rect(svg,80,25,100,(height/2)-12.5,"zoom_button","zoom_out");
+    add_text(svg,140,(height/2) + 6,"middle","ZOOM OUT","zoom_button","zoom_out_text");
+
+    add_rect(svg,80,25,190,(height/2)-12.5,"zoom_button","refresh");
+    add_text(svg,230,(height/2) + 6,"middle","REFRESH","zoom_button","refresh_text");
+
+}
   // moves - just draw the svg
   function draw_moves_svg(div_id){
 
@@ -108,8 +136,8 @@ function ready(error, data,all_ship_data) {
       d3.select("#" + div_id)
           .append("svg")
           .attr("class","moves_svg")
-          .attr("preserveAspectRatio", "none")
-          .attr("viewBox", "0 0 " + width + " " + height);
+          .attr("width",width)
+          .attr("height",height);
 
 
   }
@@ -127,8 +155,9 @@ function ready(error, data,all_ship_data) {
       svg = d3.select("#" + div_id)
           .append("svg")
           .attr("class","ships_svg")
-          .attr("preserveAspectRatio", "none")
-          .attr("viewBox", "0 0 " + width + " " + height);
+          .attr("width",width)
+          .attr("height",height);
+
 
       //2. draw move panel + submitted buttons
       var move_panel_width = 550;
@@ -287,7 +316,7 @@ function ready(error, data,all_ship_data) {
       draw_moves([]);
 
     var svg = d3.select(".ships_svg");
-    var height = +svg.attr("viewBox").split(" ")[3];
+    var height = +svg.attr("height");
 
     // 2. move panel icon, containing rectangle and labels
     var my_group,enter;
@@ -452,15 +481,27 @@ function select_unit_icon(){
     var hex_group;
 
     if(d3.select(".hex_svg")._groups[0][0] == null){
+
+    zoom.translateExtent([[0, 0], [width, height]])
+        .extent([[0, 0], [width, height]])
+        .on("zoom", zoomed);
+
       //draw svg to div height and width
       var svg = d3.select("#test_hex")
           .append("svg")
           .attr("class","hex_svg")
-          .attr("preserveAspectRatio", "xMidYMid meet")
-          .attr("viewBox", "0 0 " + width + " " + height );
+          .attr("width",width)
+          .attr("height",height)
+          .append("g")
+          .call(zoom);
+
 
       hex_group = svg.append("g").attr("class","hex_group");
-      svg.append("g").attr("class","icon_group");
+      svg.append("g").attr("class","icon_group")
+
+      d3.selectAll(".zoom_button").on("click",zoom_click)
+
+
     } else {
       hex_group = d3.select(".hex_group");
       d3.select(".icon_group");
@@ -541,6 +582,24 @@ function select_unit_icon(){
             }
           }
         })
+
+      function zoomed() {
+          svg.attr("transform",d3.zoomTransform(this))
+
+      };
+
+      function zoom_click() {
+
+          var zoom_multiplier = (this.id === 'zoom_in') ? 1.1 : 0.9;
+          if(this.id === "refresh"){
+              svg.call(zoom.transform, d3.zoomIdentity);
+
+          } else {
+              zoom.scaleBy(svg,zoom_multiplier)
+          }
+
+
+      };
 
    }
 

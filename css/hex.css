@@ -5,13 +5,6 @@ body{
   font-size: 12px;
 }
 
-#moves_div{
-  float: right;
-  width: 100%;
-  font-size: 14px;
-  text-align: center;
-  height: 5vh;
-}
 
 #test_hex{
   float: left;
@@ -26,8 +19,17 @@ body{
   width: 20%;
   font-size: 14px;
   text-align: center;
-  height: 75vh;
+  height: 65vh;
 }
+
+#zoom_div{
+  float: right;
+  width: 20%;
+  font-size: 14px;
+  text-align: center;
+  height: 10vh;
+}
+
 
 
 #test_ships{
