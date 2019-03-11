@@ -120,8 +120,8 @@ function draw_zoom_svg(div_id){
     add_rect(svg,80,25,100,(height/2)-12.5,"zoom_button","zoom_out");
     add_text(svg,140,(height/2) + 6,"middle","ZOOM OUT","zoom_button","zoom_out_text");
 
-    add_rect(svg,80,25,190,(height/2)-12.5,"zoom_button","refresh");
-    add_text(svg,230,(height/2) + 6,"middle","REFRESH","zoom_button","refresh_text");
+    add_rect(svg,120,25,190,(height/2)-12.5,"zoom_button","refresh");
+    add_text(svg,250,(height/2) + 6,"middle","FIT TO WINDOW","zoom_button","refresh_text");
 
 }
   // moves - just draw the svg
@@ -723,10 +723,12 @@ function play_animation() {
 
     my_group.select(".moves_text")
             .attr("x",5)
-            .attr("y",(d,i) => (20 * (+i)))
+            .attr("y",(d,i) => (20 * (+i+1)))
             .text(function(d,i){
               if(+i > 0){
-                return i + ": " + d.hex_reference + " to " + d.hex_reference + " speed=" +  d.hex_speed
+                return  "move to: " + d.hex_reference + " speed=" +  d.hex_speed
+              } else {
+                  return "start position: " + d.hex_reference + " speed=" +  d.hex_speed
               }
     });
   }
