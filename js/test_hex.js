@@ -492,12 +492,18 @@ function select_unit_icon(){
           .attr("class","hex_svg")
           .attr("width",width)
           .attr("height",height)
-          .append("g")
           .call(zoom);
 
 
-      hex_group = svg.append("g").attr("class","hex_group");
-      svg.append("g").attr("class","icon_group")
+      var zoom_rect = svg.append("g");
+
+      zoom_rect.append("rect")
+          .attr("width",width)
+          .attr("height",height)
+          .attr("fill","#fff")
+
+      hex_group = zoom_rect.append("g").attr("class","hex_group");
+        zoom_rect.append("g").attr("class","icon_group")
 
       d3.selectAll(".zoom_button").on("click",zoom_click)
 
@@ -584,7 +590,7 @@ function select_unit_icon(){
         })
 
       function zoomed() {
-          svg.attr("transform",d3.zoomTransform(this))
+          zoom_rect.attr("transform",d3.zoomTransform(this))
 
       };
 
@@ -593,7 +599,6 @@ function select_unit_icon(){
           var zoom_multiplier = (this.id === 'zoom_in') ? 1.1 : 0.9;
           if(this.id === "refresh"){
               svg.call(zoom.transform, d3.zoomIdentity);
-
           } else {
               zoom.scaleBy(svg,zoom_multiplier)
           }
