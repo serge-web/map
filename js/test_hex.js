@@ -1,6 +1,6 @@
 
 // fixed properties
-var icons = {"helicopter":'\uf533',"ship":'\uf21a',"sub":'\uf578'};
+var icons = {"helicopter":'pleasure_craft.svg',"ship":'cleared.svg',"sub":'unknown_surface.svg'};
 var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
 var total_moves = 18;
 var margin = 30;
@@ -133,12 +133,11 @@ function draw_zoom_svg(div_id){
     var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
 
       //draw svg to div height and width
-      d3.select("#" + div_id)
+     var svg =  d3.select("#" + div_id)
           .append("svg")
           .attr("class","moves_svg")
           .attr("width",width)
           .attr("height",height);
-
 
   }
   // units - draw svg, move panel + submitted buttons, unit 'panels' (on move svg) and unit icon/path group combos (on hex svg)
@@ -329,7 +328,7 @@ function draw_zoom_svg(div_id){
     enter = my_group.enter().append("g").attr("class","unit_group");
     //append rect, icon and label to new group
     enter.append("rect").attr("class","unit_rect");
-    enter.append("text").attr("class","unit_icon fa");
+    enter.append("image").attr("class","unit_icon");
     enter.append("text").attr("class","unit_label");
     //merge and remove
     my_group = my_group.merge(enter);
@@ -359,12 +358,14 @@ function draw_zoom_svg(div_id){
     my_group.select(".unit_icon")
         .attr("id",function(d,i){return "panel_icon_" + i})
         .attr("pointer-events","none")
-        .attr('font-size', '40px')
+        .attr("width",40)
+        .attr("height",40)
         .attr("opacity","0.8")
         .attr("fill",current_colour)
-        .text(d => icons[d.vessel_type])
-        .attr("x",function(d,i){return margin + 20 + (icon_step*i)})
-        .attr("y",(height/2));
+        .attr("xlink:href", d => "icons/"+ icons[d.vessel_type])
+        .attr("x",function(d,i){return margin + 25 + (icon_step*i)})
+        .attr("y",(height/2)-35);
+
     //label properties
     my_group.select(".unit_label")
         .attr("id",function(d,i){return "panel_label_" + i})
@@ -389,7 +390,7 @@ function draw_zoom_svg(div_id){
       enter = my_group.enter().append("g").attr("class","unit_map_group");
       //append path and icon to new group
       enter.append("g").attr("class","unit_map_path_group");
-      enter.append("text").attr("class","unit_map_icon fa");  //outline rect
+      enter.append("image").attr("class","unit_map_icon");  //outline rect
       //merge and remove
       my_group = my_group.merge(enter);
       //path properties
@@ -410,7 +411,8 @@ function draw_zoom_svg(div_id){
       my_group.select(".unit_map_icon")
           .attr("pointer-events","none")
           .attr("id",function(d,i){return "map_icon_" + i})
-          .attr('font-size', hexRadius + 'px')
+          .attr('width', hexRadius)
+          .attr("height",hexRadius)
           .attr("fill",function(d){
               if(map_view === "player"){
                   return current_colour;
@@ -425,11 +427,11 @@ function draw_zoom_svg(div_id){
                   return 1
               }
           })
-          .text(d => icons[d.vessel_type])
+          .attr("xlink:href",d => "icons/" + icons[d.vessel_type])
           .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0] - (hexRadius*0.75);
-              d.y = my_points[0][1] + (hexRadius/3);
+              d.x = my_points[0][0] - (hexRadius/2);
+              d.y = my_points[0][1] - (hexRadius/2);
               return d.x})
           .attr("y",d => d.y)
           .attr("transform","translate(" + margin + "," + margin + ")");
@@ -657,8 +659,8 @@ function play_animation() {
         if (move_positions[a][counter] !== undefined) {
             var co_ords = get_points(move_positions[a][counter].icon_position);
             d3.select("#map_icon_" + a)
-                .attr("x", co_ords[0][0] - (hexRadius * 0.75))
-                .attr("y", co_ords[0][1] + (hexRadius / 3));
+                .attr("x", co_ords[0][0] - (hexRadius/2))
+                .attr("y", co_ords[0][1] - (hexRadius / 2));
             if (move_positions[a][counter].changing_path === true) {
                 check_path_exists(a,counter,move_positions[a][counter].hex_speed);
                 var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
@@ -751,8 +753,8 @@ function new_move(my_data,co_ords,row,column){
     d3.select("#map_icon_" + current_unit)
         .attr("fill",current_colour)
         .attr("opacity",1)
-        .attr("x",my_points[0][0] - (hexRadius*0.75))
-        .attr("y",my_points[0][1] + (hexRadius/3));
+        .attr("x",my_points[0][0] - (hexRadius/2))
+        .attr("y",my_points[0][1] - (hexRadius/2));
 
     reset_path(my_data.moves,my_data.current_path_id);
     current_hex_column = column;
