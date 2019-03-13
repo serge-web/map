@@ -361,10 +361,14 @@ function draw_zoom_svg(div_id){
         .attr("width",40)
         .attr("height",40)
         .attr("opacity","0.8")
-        .style("fill",current_colour)
         .attr("xlink:href", d => "icons/"+ icons[d.vessel_type])
         .attr("x",function(d,i){return margin + 25 + (icon_step*i)})
         .attr("y",(height/2)-35);
+
+    debugger;
+
+    my_group.select(".unit_icon *")
+        .style("fill",current_colour)
 
     //label properties
     my_group.select(".unit_label")
