@@ -1,6 +1,6 @@
 
 // fixed properties
-var icons = {"helicopter":'pleasure_craft.svg',"ship":'cleared.svg',"sub":'unknown_surface.svg'};
+var icons = {"helicopter":'pleasure_craft.svg',"ship":'fishing.svg',"sub":'unknown_surface.svg'};
 var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
 var total_moves = 18;
 var margin = 30;
@@ -361,7 +361,7 @@ function draw_zoom_svg(div_id){
         .attr("width",40)
         .attr("height",40)
         .attr("opacity","0.8")
-        .attr("fill",current_colour)
+        .style("fill",current_colour)
         .attr("xlink:href", d => "icons/"+ icons[d.vessel_type])
         .attr("x",function(d,i){return margin + 25 + (icon_step*i)})
         .attr("y",(height/2)-35);
