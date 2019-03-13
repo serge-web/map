@@ -25,6 +25,8 @@ var animation_units = [];
 var counter = 0;  // used for animation, needs to be global for pause button to work (I think)
 var map_view = "player";  //currently player or observer.
 var zoom = d3.zoom().scaleExtent([1, 32]);
+var offset_x = 0;
+var offset_y = 0;
 
 
 d3.queue()
@@ -236,8 +238,8 @@ function draw_zoom_svg(div_id){
             .attr("opacity",1)
             .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0]  - (hexRadius*0.75);
-              d.y = my_points[0][1] + (hexRadius/3);
+              d.x = my_points[0][0]  + offset_x;
+              d.y = my_points[0][1] + offset_y;
               return d.x})
             .attr("y",d => d.y);
         d3.selectAll("#map_path_group_" + current_unit + " path").attr("d","M0 0").attr("stroke",current_colour); //map path
@@ -365,7 +367,6 @@ function draw_zoom_svg(div_id){
         .attr("x",function(d,i){return margin + 25 + (icon_step*i)})
         .attr("y",(height/2)-35);
 
-    debugger;
 
     my_group.select(".unit_icon *")
         .style("fill",current_colour)
@@ -434,13 +435,15 @@ function draw_zoom_svg(div_id){
           .attr("xlink:href",d => "icons/" + icons[d.vessel_type])
           .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0] - (hexRadius/2);
-              d.y = my_points[0][1] - (hexRadius/2);
+              d.x = my_points[0][0] + offset_x;
+              d.y = my_points[0][1] + offset_y;
               return d.x})
           .attr("y",d => d.y)
           .attr("transform","translate(" + margin + "," + margin + ")");
 
   }
+
+
 function select_unit_icon(){
     //starts a group 'move' if not in the middle of one.
     if(current_ship_data.units[current_unit].total_moves > 0  && current_ship_data.units[current_unit].submitted === false){
@@ -526,6 +529,8 @@ function select_unit_icon(){
     var hex_height_max = height/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
+    offset_x = -hexRadius/2;
+    offset_y = -hexRadius/2;
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -663,8 +668,8 @@ function play_animation() {
         if (move_positions[a][counter] !== undefined) {
             var co_ords = get_points(move_positions[a][counter].icon_position);
             d3.select("#map_icon_" + a)
-                .attr("x", co_ords[0][0] - (hexRadius/2))
-                .attr("y", co_ords[0][1] - (hexRadius / 2));
+                .attr("x", co_ords[0][0] + offset_x)
+                .attr("y", co_ords[0][1] + offset_y);
             if (move_positions[a][counter].changing_path === true) {
                 check_path_exists(a,counter,move_positions[a][counter].hex_speed);
                 var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
@@ -757,8 +762,8 @@ function new_move(my_data,co_ords,row,column){
     d3.select("#map_icon_" + current_unit)
         .attr("fill",current_colour)
         .attr("opacity",1)
-        .attr("x",my_points[0][0] - (hexRadius/2))
-        .attr("y",my_points[0][1] - (hexRadius/2));
+        .attr("x",my_points[0][0] + offset_x)
+        .attr("y",my_points[0][1] + offset_y);
 
     reset_path(my_data.moves,my_data.current_path_id);
     current_hex_column = column;
