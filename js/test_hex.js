@@ -1,6 +1,7 @@
 
 // fixed properties
-var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
+var colors = d3.scaleOrdinal().domain(["0","1","2","3","4","7"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6","#ece7f2"]);
+var type_labels = {"0":"sea","1":"land","2":"shallow water","3":"deep water","4":"ocean front","7": "another"}
 var total_moves = 18;
 var margin = 30;
 var icon_step = 120; //gap between icon 'panels' on ships svg
@@ -45,6 +46,11 @@ function ready(error, data,all_ship_data) {
           map_view = this.value;
           render_items();
       })
+
+    d3.selectAll(".text_labels")
+        .on("change",function(d){
+            d3.selectAll(".hex_label").attr("visibility",this.value)
+        })
   d3.select("#cell_select")
       .on("change",function(){
         current_ship_data = all_ship_data.cells.filter(d => d.Force === this.value)[0];
@@ -563,12 +569,23 @@ function select_unit_icon(){
     var my_data = hexbin(points);
 
 
-    //Draw the hexagons
-    hex_group.append("g")
-        .selectAll(".hexagon_group")
-        .data(my_data)
-        .enter().append("path")
-        .attr("class", "hexagon")
+      //repeat for map units,
+      my_group = hex_group.selectAll(".hexagon_group").data(my_data, d => d[3]);
+      //exit, remove
+      my_group.exit().remove();
+      //enter new groups
+      enter = my_group.enter().append("g").attr("class","hexagon_group");
+      //append path and icon to new group
+      enter.append("path").attr("class","hexagon");
+      enter.append("text").attr("class","type_label hex_label")
+      enter.append("text").attr("class","long_lat_label hex_label")
+      enter.append("text").attr("class","coord_label hex_label")
+      //merge and remove
+      my_group = my_group.merge(enter);
+
+
+      //Draw the hexagons
+    my_group.select(".hexagon")
         .attr("id",d => "hex_" + d[0][5])
         .attr("d", function (d) {
           return "M" + d.x + "," + d.y + hexbin.hexagon();
@@ -598,14 +615,36 @@ function select_unit_icon(){
             var co_ords = this.id.split("_")[1];
             var this_row = +co_ords.split("-")[0];
             var this_column = +co_ords.split("-")[1];
-
             if(check_adjacent(this_row,this_column) === true){
               new_move(current_ship_data.units[current_unit],co_ords,this_row,this_column,this)
-            } else {
-              console.log('not adjacent')
             }
           }
-        })
+        });
+
+
+    my_group.select(".type_label")
+        .attr("x",d => d.x)
+        .attr("y",d => d.y-3)
+        .attr("text-anchor","middle")
+        .attr("font-size","0.15em")
+        .text(d => type_labels[d[0][2]])
+        .attr("transform","translate(" + margin + "," + margin + ")")
+
+      my_group.select(".long_lat_label")
+          .attr("x",d => d.x)
+          .attr("y",d => d.y)
+          .attr("text-anchor","middle")
+          .attr("font-size","0.15em")
+          .text(d => d[0][4])
+          .attr("transform","translate(" + margin + "," + margin + ")")
+
+      my_group.select(".coord_label")
+          .attr("x",d => d.x)
+          .attr("y",d => d.y+3)
+          .attr("text-anchor","middle")
+          .attr("font-size","0.15em")
+          .text(d => d[0][5])
+          .attr("transform","translate(" + margin + "," + margin + ")")
 
       function zoomed() {
           zoom_rect.attr("transform",d3.zoomTransform(this))
