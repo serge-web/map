@@ -81,7 +81,7 @@
                 "name": "submarine",
                 "vessel_count": 1,
                 "vessel_type": "sub",
-                "svg_string": "<ellipse id='Oval' fill='#000000' cx='50.0111093' cy='44.2182422' rx='31' ry='30.7304336' transform='matrix(1, 0, 0, 1, 0, 0)'/>\n  <polyline style='stroke: #000000; fill: #000000;' points='75.13 6.365 87.08 17.809 76.384 28.948 64.739 17.841 75.529 6.671' transform='matrix(1, 0, 0, 1, 0, 0)'/>\n  <polyline style='stroke: #000000; fill: #000000;' points='41.823 0.5 58.836 0.45 58.761 15.467 42.328 15.281 42.328 0.301' transform='matrix(1, 0, 0, 1, 0, 0)'/>\n  <polyline style='stroke: #000000; fill: #000000;' points='12.071 19.617 23.868 7.562 34.775 18.451 23.156 30.234 12.437 19.351' transform='matrix(1, 0, 0, 1, 0, 0)'/>\n  <polyline style='fill: rgb(216, 216, 216); stroke: #000000;' points='11.885 18.751' transform='matrix(1, 0, 0, 1, 0, 0)'/>\n  <circle cx='50.011' cy='44.218' rx='2.5' style='fill: rgb(255, 0, 0);' id='origin' r='2.5'/>",
+                "svg_string": " <line style='stroke: #000000; stroke-width: 20;' x1='7.164' y1='7.016' x2='92.765' y2='92.94' transform='matrix(0.9999999999999999, 0, 0, 0.9999999999999999, -7.105427357601002e-15, -1.4210854715202004e-14)'/>\n  <line style='stroke: #000000; stroke-width: 20; fill: none; fill-opacity: 0;' x1='7.198' y1='92.549' x2='92.787' y2='7.282' transform='matrix(0.9999999999999999, 0, 0, 0.9999999999999999, -7.105427357601002e-15, -1.4210854715202004e-14)'/>\n  <circle id='origin' cx='50' cy='50' r='2.5' style='fill: rgb(255, 0, 0);'/>",
                 "moves": [{
                     "hex_reference": "27-27",
                     "long_lat": "",

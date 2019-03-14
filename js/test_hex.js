@@ -49,8 +49,9 @@ function ready(error, data,all_ship_data) {
 
     d3.selectAll(".text_labels")
         .on("change",function(d){
-            d3.selectAll(".hex_label").attr("visibility",this.value)
+            d3.selectAll(".hex_label").attr("display",this.value)
         })
+
   d3.select("#cell_select")
       .on("change",function(){
         current_ship_data = all_ship_data.cells.filter(d => d.Force === this.value)[0];
@@ -542,8 +543,8 @@ function select_unit_icon(){
     var hex_height_max = height/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
-    offset_x = hexRadius*2
-    offset_y = hexRadius*2
+    offset_x = hexRadius*2;
+    offset_y = hexRadius*2.133;
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -623,6 +624,7 @@ function select_unit_icon(){
 
 
     my_group.select(".type_label")
+        .attr("display","none")
         .attr("x",d => d.x)
         .attr("y",d => d.y-3)
         .attr("text-anchor","middle")
@@ -631,6 +633,7 @@ function select_unit_icon(){
         .attr("transform","translate(" + margin + "," + margin + ")")
 
       my_group.select(".long_lat_label")
+          .attr("display","none")
           .attr("x",d => d.x)
           .attr("y",d => d.y)
           .attr("text-anchor","middle")
@@ -639,6 +642,7 @@ function select_unit_icon(){
           .attr("transform","translate(" + margin + "," + margin + ")")
 
       my_group.select(".coord_label")
+          .attr("display","none")
           .attr("x",d => d.x)
           .attr("y",d => d.y+3)
           .attr("text-anchor","middle")
