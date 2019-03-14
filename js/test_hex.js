@@ -1,6 +1,5 @@
 
 // fixed properties
-var icons = {"helicopter":'pleasure_craft.svg',"ship":'fishing.svg',"sub":'unknown_surface.svg'};
 var colors = d3.scaleOrdinal().domain(["0","1","2","3","4"]).range(["#c6dbef","#fed976","#9ecae1","#6baed6","#4292c6"]);
 var total_moves = 18;
 var margin = 30;
@@ -75,6 +74,7 @@ function ready(error, data,all_ship_data) {
             }
             initialise_player_items()
         } else if(map_view === "observer"){
+            counter = 0;
             d3.select(".moves_svg").style("visibility","hidden");
             d3.select(".ships_svg").selectAll(".unit_group").data([]).exit().remove();
             var my_units = [];
@@ -330,7 +330,7 @@ function draw_zoom_svg(div_id){
     enter = my_group.enter().append("g").attr("class","unit_group");
     //append rect, icon and label to new group
     enter.append("rect").attr("class","unit_rect");
-    enter.append("image").attr("class","unit_icon");
+    enter.append("svg").attr("class","unit_icon");
     enter.append("text").attr("class","unit_label");
     //merge and remove
     my_group = my_group.merge(enter);
@@ -357,19 +357,18 @@ function draw_zoom_svg(div_id){
             select_unit_icon();
         });
     //icon properties
+
     my_group.select(".unit_icon")
         .attr("id",function(d,i){return "panel_icon_" + i})
         .attr("pointer-events","none")
-        .attr("width",40)
-        .attr("height",40)
+        .attr("width",60)
+        .attr("height",60)
+        .attr("viewBox","0 0 100 100")
+        .attr("xmlns",'http://www.w3.org/2000/svg')
         .attr("opacity","0.8")
-        .attr("xlink:href", d => "icons/"+ icons[d.vessel_type])
-        .attr("x",function(d,i){return margin + 25 + (icon_step*i)})
-        .attr("y",(height/2)-35);
-
-
-    my_group.select(".unit_icon *")
-        .style("fill",current_colour)
+        .html( d => add_svg_colour(d.svg_string,current_colour))
+        .attr("x",function(d,i){return margin + 15 + (icon_step*i)})
+        .attr("y",(height/2)-45)
 
     //label properties
     my_group.select(".unit_label")
@@ -384,6 +383,12 @@ function draw_zoom_svg(div_id){
     initialise_map_icons(current_ship_data.units)
   }
 
+function add_svg_colour(my_string,new_colour){
+
+    my_string = my_string.replace(/#000000/g,new_colour);
+    return my_string;
+}
+
   function initialise_map_icons(my_data){
       // 3. hex svg icons and path groups
       var map_svg = d3.select(".hex_svg").select(".icon_group");
@@ -395,7 +400,7 @@ function draw_zoom_svg(div_id){
       enter = my_group.enter().append("g").attr("class","unit_map_group");
       //append path and icon to new group
       enter.append("g").attr("class","unit_map_path_group");
-      enter.append("image").attr("class","unit_map_icon");  //outline rect
+      enter.append("svg").attr("class","unit_map_icon");  //outline rect
       //merge and remove
       my_group = my_group.merge(enter);
       //path properties
@@ -412,17 +417,20 @@ function draw_zoom_svg(div_id){
               }
           });
 
+
       //icon properties
       my_group.select(".unit_map_icon")
           .attr("pointer-events","none")
           .attr("id",function(d,i){return "map_icon_" + i})
-          .attr('width', hexRadius)
-          .attr("height",hexRadius)
-          .attr("fill",function(d){
+          .attr('width', hexRadius*1.5)
+          .attr("height",hexRadius*1.5)
+          .attr("viewBox","0 0 100 100")
+          .attr("xmlns",'http://www.w3.org/2000/svg')
+          .html(function(d){
               if(map_view === "player"){
-                  return current_colour;
+                  return add_svg_colour(d.svg_string,current_colour);
               } else {
-                  return d.current_colour;
+                  return add_svg_colour(d.svg_string,d.current_colour);
               }
           })
           .attr("opacity",function(d){
@@ -432,7 +440,6 @@ function draw_zoom_svg(div_id){
                   return 1
               }
           })
-          .attr("xlink:href",d => "icons/" + icons[d.vessel_type])
           .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
               d.x = my_points[0][0] + offset_x;
@@ -529,8 +536,8 @@ function select_unit_icon(){
     var hex_height_max = height/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
-    offset_x = -hexRadius/2;
-    offset_y = -hexRadius/2;
+    offset_x = hexRadius*2
+    offset_y = hexRadius*2
 
     //Calculate the center positions of each hexagon
     points = [];
