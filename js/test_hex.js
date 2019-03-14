@@ -408,6 +408,7 @@ function add_svg_colour(my_string,new_colour){
       //append path and icon to new group
       enter.append("g").attr("class","unit_map_path_group");
       enter.append("svg").attr("class","unit_map_icon");  //outline rect
+      enter.append("circle").attr("class","unit_test_circle");  //outline rect
       //merge and remove
       my_group = my_group.merge(enter);
       //path properties
@@ -423,6 +424,18 @@ function add_svg_colour(my_string,new_colour){
                   return d.current_colour;
               }
           });
+
+      my_group.select(".unit_test_circle")
+          .attr("cx",function(d){
+              var my_points = get_points(d.moves[0].hex_reference);
+              d.x = my_points[0][0]-1 ;
+              d.y = my_points[0][1]-1 ;
+            return d.x
+          })
+          .attr("cy",d => d.y)
+          .attr("fill","red")
+          .attr("r",2)
+          .attr("transform","translate(" + margin + "," + margin + ")");
 
 
       //icon properties
@@ -544,7 +557,7 @@ function select_unit_icon(){
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
     offset_x = hexRadius*2;
-    offset_y = hexRadius*2.133;
+    offset_y = hexRadius*2;
 
     //Calculate the center positions of each hexagon
     points = [];
