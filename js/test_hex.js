@@ -245,8 +245,8 @@ function draw_zoom_svg(div_id){
             .attr("opacity",1)
             .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0]  + offset_x + margin;
-              d.y = my_points[0][1] + offset_y + margin;
+              d.x = my_points.x  + offset_x ;
+              d.y = my_points.y + offset_y ;
               return d.x})
             .attr("y",d => d.y);
         d3.selectAll("#map_path_group_" + current_unit + " path").attr("d","M0 0").attr("stroke",current_colour); //map path
@@ -425,17 +425,6 @@ function add_svg_colour(my_string,new_colour){
               }
           });
 
-      my_group.select(".unit_test_circle")
-          .attr("cx",function(d){
-              var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0]-1 ;
-              d.y = my_points[0][1]-1 ;
-            return d.x
-          })
-          .attr("cy",d => d.y)
-          .attr("fill","red")
-          .attr("r",2)
-          .attr("transform","translate(" + margin + "," + margin + ")");
 
 
       //icon properties
@@ -462,8 +451,8 @@ function add_svg_colour(my_string,new_colour){
           })
           .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0] + offset_x + margin;
-              d.y = my_points[0][1] + offset_y + margin;
+              d.x = my_points.x + offset_x;
+              d.y = my_points.y + offset_y;
               return d.x})
           .attr("y",d => d.y)
   }
@@ -554,8 +543,8 @@ function select_unit_icon(){
     var hex_height_max = height/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
-    offset_y = -hexRadius;
-    offset_x = -((hexRadius * Math.sqrt(3))/2);
+    offset_y = -hexRadius + margin;
+    offset_x = -((hexRadius * Math.sqrt(3))/2) + margin;
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -566,11 +555,6 @@ function select_unit_icon(){
           points.push([hexRadius * j * 1.75, hexRadius * i * 1.5, is_data[0].type,  is_data[0].id,is_data[0].cell_center,i + "-" + j]);
 
           long_lats[i + "-" + j] = is_data[0].cell_center;
-          var true_x = hexRadius * j * Math.sqrt(3);
-          if(i%2 !== 0){
-            true_x += hexRadius
-          }
-          true_points.push([true_x, hexRadius * i * 1.5,i + "-" + j]);
         }
       }//for j
     }//for i
@@ -578,23 +562,33 @@ function select_unit_icon(){
     //Set the hexagon radius
     var hexbin = d3.hexbin().radius(hexRadius);
 
-    var my_data = hexbin(points);
+    true_points = hexbin(points);
 
 
       //repeat for map units,
-      my_group = hex_group.selectAll(".hexagon_group").data(my_data, d => d[3]);
+      my_group = hex_group.selectAll(".hexagon_group").data(true_points, d => d[3]);
       //exit, remove
       my_group.exit().remove();
       //enter new groups
       enter = my_group.enter().append("g").attr("class","hexagon_group");
       //append path and icon to new group
       enter.append("path").attr("class","hexagon");
+      enter.append("circle").attr("class","centre_circle");
       enter.append("text").attr("class","type_label hex_label")
       enter.append("text").attr("class","long_lat_label hex_label")
       enter.append("text").attr("class","coord_label hex_label")
       //merge and remove
       my_group = my_group.merge(enter);
 
+
+      my_group.select(".centre_circle")
+          .attr("cx",function(d){
+              return d.x
+          })
+          .attr("cy", d => d.y)
+          .attr("fill","red")
+          .attr("r",1)
+          .attr("transform","translate(" + margin + "," + margin + ")")
 
       //Draw the hexagons
     my_group.select(".hexagon")
@@ -729,21 +723,21 @@ function play_animation() {
         if (move_positions[a][counter] !== undefined) {
             var co_ords = get_points(move_positions[a][counter].icon_position);
             d3.select("#map_icon_" + a)
-                .attr("x", co_ords[0][0] + offset_x + margin)
-                .attr("y", co_ords[0][1] + offset_y + margin);
+                .attr("x", co_ords.x + offset_x)
+                .attr("y", co_ords.y + offset_y);
             if (move_positions[a][counter].changing_path === true) {
                 check_path_exists(a,counter,move_positions[a][counter].hex_speed);
                 var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
 
                 if (path_string.includes("M") === false) {
                     if (move_positions[a][counter].path_id === 0) {
-                        paths[a] += "M" + co_ords[0][0] + " " + co_ords[0][1];
+                        paths[a] += "M" + co_ords.x + " " + co_ords.y;
                     } else {
                         var previous_co_ords = get_points(move_positions[a][counter - 1].icon_position);
-                        paths[a] = " M " + previous_co_ords[0][0] + " " + previous_co_ords[0][1] + " L " + co_ords[0][0] + " " + co_ords[0][1];
+                        paths[a] = " M " + previous_co_ords.x + " " + previous_co_ords.y + " L " + co_ords.x + " " + co_ords.y;
                     }
                 } else {
-                    paths[a] += " L" + co_ords[0][0] + " " + co_ords[0][1]
+                    paths[a] += " L" + co_ords.x + " " + co_ords.y
                 }
                 d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d", paths[a]);
             }
@@ -808,7 +802,12 @@ function play_animation() {
 
 
 function get_points(start_position){
-  return true_points.filter(f => f[2] === start_position);
+    var my_points = true_points.filter(f => f[0][5] === start_position);
+    if(my_points.length > 0){
+        return {x: my_points[0].x,y: my_points[0].y}
+    } else {
+        return {x:0,y:0}
+    }
 }
 
 function new_move(my_data,co_ords,row,column){
@@ -823,8 +822,8 @@ function new_move(my_data,co_ords,row,column){
     d3.select("#map_icon_" + current_unit)
         .attr("fill",current_colour)
         .attr("opacity",1)
-        .attr("x",my_points[0][0] + offset_x + margin)
-        .attr("y",my_points[0][1] + offset_y + margin);
+        .attr("x",my_points.x + offset_x)
+        .attr("y",my_points.y + offset_y);
 
     reset_path(my_data.moves,my_data.current_path_id);
     current_hex_column = column;
@@ -848,14 +847,14 @@ function reset_path(moves,current_path_id){
     if(moves[m].current_path_id === current_path_id){
       if(current_path_id !== 0 && changing === true){
         var previous_moves = get_points(current_move.hex_reference);
-        new_path = "M" + previous_moves[0][0] + " " + previous_moves[0][1];
+        new_path = "M" + previous_moves.x + " " + previous_moves.y;
         changing = false;
       }
       var current_moves = get_points(moves[m].hex_reference);
       if(m === "0"){
-        new_path = "M" + current_moves[0][0] + " " + current_moves[0][1]
+        new_path = "M" + current_moves.x + " " + current_moves.y
       } else {
-        new_path += " L" + current_moves[0][0] + " " + current_moves[0][1]
+        new_path += " L" + current_moves.x + " " + current_moves.y
       }
     } else {
       changing = true;
