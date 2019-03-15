@@ -580,16 +580,6 @@ function select_unit_icon(){
       //merge and remove
       my_group = my_group.merge(enter);
 
-
-      my_group.select(".centre_circle")
-          .attr("cx",function(d){
-              return d.x
-          })
-          .attr("cy", d => d.y)
-          .attr("fill","red")
-          .attr("r",1)
-          .attr("transform","translate(" + margin + "," + margin + ")")
-
       //Draw the hexagons
     my_group.select(".hexagon")
         .attr("id",d => "hex_" + d[0][5])
