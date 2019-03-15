@@ -245,8 +245,8 @@ function draw_zoom_svg(div_id){
             .attr("opacity",1)
             .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0]  + offset_x;
-              d.y = my_points[0][1] + offset_y;
+              d.x = my_points[0][0]  + offset_x + margin;
+              d.y = my_points[0][1] + offset_y + margin;
               return d.x})
             .attr("y",d => d.y);
         d3.selectAll("#map_path_group_" + current_unit + " path").attr("d","M0 0").attr("stroke",current_colour); //map path
@@ -462,12 +462,10 @@ function add_svg_colour(my_string,new_colour){
           })
           .attr("x",function(d){
               var my_points = get_points(d.moves[0].hex_reference);
-              d.x = my_points[0][0] + offset_x;
-              d.y = my_points[0][1] + offset_y;
+              d.x = my_points[0][0] + offset_x + margin;
+              d.y = my_points[0][1] + offset_y + margin;
               return d.x})
           .attr("y",d => d.y)
-          .attr("transform","translate(" + margin + "," + margin + ")");
-
   }
 
 
@@ -556,8 +554,8 @@ function select_unit_icon(){
     var hex_height_max = height/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
-    offset_x = hexRadius*2;
-    offset_y = hexRadius*2;
+    offset_y = -hexRadius;
+    offset_x = -((hexRadius * Math.sqrt(3))/2);
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -731,8 +729,8 @@ function play_animation() {
         if (move_positions[a][counter] !== undefined) {
             var co_ords = get_points(move_positions[a][counter].icon_position);
             d3.select("#map_icon_" + a)
-                .attr("x", co_ords[0][0] + offset_x)
-                .attr("y", co_ords[0][1] + offset_y);
+                .attr("x", co_ords[0][0] + offset_x + margin)
+                .attr("y", co_ords[0][1] + offset_y + margin);
             if (move_positions[a][counter].changing_path === true) {
                 check_path_exists(a,counter,move_positions[a][counter].hex_speed);
                 var path_string = d3.select("#map_path_group_" + a).select("#map_path_" + move_positions[a][counter].path_id).attr("d");
@@ -825,8 +823,8 @@ function new_move(my_data,co_ords,row,column){
     d3.select("#map_icon_" + current_unit)
         .attr("fill",current_colour)
         .attr("opacity",1)
-        .attr("x",my_points[0][0] + offset_x)
-        .attr("y",my_points[0][1] + offset_y);
+        .attr("x",my_points[0][0] + offset_x + margin)
+        .attr("y",my_points[0][1] + offset_y + margin);
 
     reset_path(my_data.moves,my_data.current_path_id);
     current_hex_column = column;
