@@ -24,7 +24,7 @@ var paths = {};
 var animation_units = [];
 var counter = 0;  // used for animation, needs to be global for pause button to work (I think)
 var map_view = "player";  //currently player or observer.
-var zoom = d3.zoom().scaleExtent([1, 32]);
+var zoom = d3.zoom().scaleExtent([1, 32]).touchable(navigator.maxTouchPoints);
 var offset_x = 0;
 var offset_y = 0;
 
