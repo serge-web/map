@@ -515,7 +515,7 @@ function select_unit_icon(){
           .attr("class","hex_svg")
           .attr("width",width)
           .attr("height",height)
-          .call(zoom);
+          .call(zoom).on("dblclick.zoom", null);
 
 
       var zoom_rect = svg.append("g");
@@ -654,7 +654,7 @@ function select_unit_icon(){
 
           var zoom_multiplier = (this.id === 'zoom_in') ? 1.1 : 0.9;
           if(this.id === "refresh"){
-              svg.call(zoom.transform, d3.zoomIdentity);
+              svg.call(zoom.transform, d3.zoomIdentity).on("dblclick.zoom", null);
           } else {
               zoom.scaleBy(svg,zoom_multiplier)
           }
