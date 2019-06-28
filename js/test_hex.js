@@ -466,9 +466,13 @@ function select_unit_icon(){
         //return state of all element
         d3.selectAll(".unit_rect").attr("fill","white");
         d3.selectAll(".unit_icon").attr("fill","grey");
-        d3.selectAll(".unit_map_icon").attr("fill",current_colour).attr("opacity",0);
-        d3.selectAll(".unit_map_path_group path").attr("opacity",0);
-        d3.select("#submit_text").attr("opacity",1);
+      //  d3.selectAll(".unit_map_icon").attr("fill",current_colour).attr("opacity",0);
+      //  d3.selectAll(".unit_map_path_group path").attr("opacity",0);
+        if(current_ship_data.units[current_unit].submitted === false)
+            d3.select("#submit_text").attr("opacity",1);
+        else{
+            d3.select("#submit_text").attr("opacity",0.2);
+        }
         draw_moves(current_ship_data.units[current_unit].moves);
 
         //set correct colour for icons and path
