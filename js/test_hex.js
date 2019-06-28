@@ -37,7 +37,7 @@ d3.queue()
 function ready(error, data,all_ship_data) {
 
 
-  data = filter_data(data); // not a function to be proud of, but cuts down the map data.
+  data = filter_data(data); // not a function to be proud of, but cuts down the map data
   draw_zoom_svg("zoom_div");
   draw_hex_map(data);
 
@@ -933,18 +933,12 @@ function filter_data(data){
     data[d].column  -= column_difference;
   }
 
+  var max_cols = d3.max(data, d=> +d.column);
 
-  data = data.filter(d => d.column >= 10 && d.column <= 45);
-  data = data.filter(d => d.row >= 10 && d.row <= 50);
-
-  rows = d3.extent(data, d=> +d.row);
-  columns = d3.extent(data,d => +d.column);
-
-  row_difference = rows[0]-1;
-  column_difference = columns[0]-1;
   for(d in data){
-    data[d].row -= row_difference;
-    data[d].column  -= column_difference;
+      var my_column = data[d].column;
+      data[d].column = data[d].row;
+      data[d].row = max_cols - my_column + 1;
   }
   return data;
 
