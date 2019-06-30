@@ -27,6 +27,8 @@ var map_view = "player";  //currently player or observer.
 var zoom = d3.zoom().scaleExtent([1, 32]).touchable(navigator.maxTouchPoints);
 var offset_x = 0;
 var offset_y = 0;
+var transform_str = "translate(" + margin + "," +margin + ")"
+
 
 
 d3.queue()
@@ -35,7 +37,6 @@ d3.queue()
     .await(ready);
 
 function ready(error, data,all_ship_data) {
-
 
   data = filter_data(data); // not a function to be proud of, but cuts down the map data
   draw_zoom_svg("zoom_div");
@@ -414,7 +415,7 @@ function add_svg_colour(my_string,new_colour){
       //path properties
       my_group.select(".unit_map_path_group")
           .attr("id",function(d,i){return "map_path_group_" + i})
-          .attr("transform","translate(" + margin + "," + margin + ")")
+          .attr("transform",transform_str)
           .append("path")
           .attr("id","map_path_0")
           .attr("stroke",function(d){
@@ -592,7 +593,7 @@ function select_unit_icon(){
         })
         .attr("stroke", "white")
         .attr("stroke-width", "1px")
-        .attr("transform","translate(" + margin + "," + margin + ")")
+        .attr("transform",transform_str)
         .attr("fill", d => colors(+d[0][2]))
         .on("mouseover",function(){
           if(moving === true){
@@ -933,13 +934,19 @@ function filter_data(data){
     data[d].column  -= column_difference;
   }
 
-  var max_cols = d3.max(data, d=> +d.column);
+    data = data.filter(d => d.column >= 10 && d.column <= 45);
+   data = data.filter(d => d.row >= 10 && d.row <= 50);
 
-  for(d in data){
-      var my_column = data[d].column;
-      data[d].column = data[d].row;
-      data[d].row = max_cols - my_column + 1;
-  }
+    rows = d3.extent(data, d=> +d.row);
+    columns = d3.extent(data,d => +d.column);
+
+    row_difference = rows[0]-1;
+    column_difference = columns[0]-1;
+    for(d in data) {
+        data[d].row -= row_difference;
+        data[d].column -= column_difference;
+    }
+
   return data;
 
 }
