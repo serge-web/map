@@ -410,7 +410,7 @@ function add_svg_colour(my_string,new_colour){
       enter.append("g").attr("class","unit_map_path_group");
       enter.append("svg").attr("class","unit_map_icon");
       enter.append("circle").attr("class","unit_test_circle");  //outline rect
-      //merge and remove
+      //merge and remo"ve
       my_group = my_group.merge(enter);
       //path properties
       my_group.select(".unit_map_path_group")
@@ -542,7 +542,7 @@ function select_unit_icon(){
           .attr("fill","transparent")
 
       hex_group = zoom_rect.append("g").attr("class","hex_group");
-        zoom_rect.append("g").attr("class","icon_group")
+        zoom_rect.append("g").attr("class","icon_group");
 
       d3.selectAll(".zoom_button").on("click",zoom_click)
 
