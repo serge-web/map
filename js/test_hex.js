@@ -147,7 +147,7 @@ function draw_zoom_svg(div_id){
           .append("svg")
           .attr("class","moves_svg")
           .attr("width",width)
-          .attr("height",height);
+          .attr("height",height)
 
   }
   // units - draw svg, move panel + submitted buttons, unit 'panels' (on move svg) and unit icon/path group combos (on hex svg)
@@ -405,7 +405,7 @@ function add_svg_colour(my_string,new_colour){
       //exit, remove
       my_group.exit().remove();
       //enter new groups
-      enter = my_group.enter().append("g").attr("class","unit_map_group");
+      enter = my_group.enter().append("g").attr("class","unit_map_group").attr("transform",transform_str);
       //append path and icon to new group
       enter.append("g").attr("class","unit_map_path_group");
       enter.append("svg").attr("class","unit_map_icon");  //outline rect
@@ -415,7 +415,6 @@ function add_svg_colour(my_string,new_colour){
       //path properties
       my_group.select(".unit_map_path_group")
           .attr("id",function(d,i){return "map_path_group_" + i})
-          .attr("transform",transform_str)
           .append("path")
           .attr("id","map_path_0")
           .attr("stroke",function(d){
@@ -456,6 +455,7 @@ function add_svg_colour(my_string,new_colour){
               d.y = my_points.y + offset_y;
               return d.x})
           .attr("y",d => d.y)
+
   }
 
 
@@ -504,11 +504,12 @@ function select_unit_icon(){
 
     var chart_div = document.getElementById("test_hex");
     //set width and height.
-    var width = chart_div.clientWidth;
-    var height = chart_div.clientHeight;//setting height as a proportion of width so we can control the layout better
+    var width = chart_div.clientHeight;
+    var height = chart_div.clientWidth;//setting height as a proportion of width so we can control the layout better
     var hex_group;
 
     if(d3.select(".hex_svg")._groups[0][0] == null){
+
 
     zoom.translateExtent([[0, 0], [width, height]])
         .extent([[0, 0], [width, height]])
@@ -520,15 +521,25 @@ function select_unit_icon(){
           .attr("class","hex_svg")
           .attr("width",width)
           .attr("height",height)
+          .style("background-color","pink")
+          .attr("transform","translate(0, " + (-(height-width)/2) + ") rotate(-90 0 0)")
           .call(zoom).on("dblclick.zoom", null);
 
 
       var zoom_rect = svg.append("g");
 
+        //clip path - enabled in css
+        zoom_rect.append("defs").append("clipPath")
+            .attr("id", "clip")
+            .append("rect")
+            .attr("width", width)
+            .attr("height", height);
+
       zoom_rect.append("rect")
+          .attr("clip-path","url(#clip)")
           .attr("width",width)
           .attr("height",height)
-          .attr("fill","#fff")
+          .attr("fill","transparent")
 
       hex_group = zoom_rect.append("g").attr("class","hex_group");
         zoom_rect.append("g").attr("class","icon_group")
@@ -544,12 +555,12 @@ function select_unit_icon(){
     rows = d3.extent(data, d=> +d.row);
     columns = d3.extent(data,d => +d.column);
 
-    var hex_width_max = width/((columns[1]*2)+2);
-    var hex_height_max = height/((rows[1]*1.5)+3);
+    var hex_height_max = height/((columns[1]*2)+2);
+    var hex_width_max = width/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
-    offset_y = -hexRadius + margin;
-    offset_x = -((hexRadius * Math.sqrt(3))/2) + margin;
+    offset_y = -hexRadius;
+    offset_x = -((hexRadius * Math.sqrt(3))/2);
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -568,7 +579,6 @@ function select_unit_icon(){
     var hexbin = d3.hexbin().radius(hexRadius);
 
     true_points = hexbin(points);
-
 
       //repeat for map units,
       my_group = hex_group.selectAll(".hexagon_group").data(true_points, d => d[3]);
@@ -935,17 +945,11 @@ function filter_data(data){
   }
 
     data = data.filter(d => d.column >= 10 && d.column <= 45);
-   data = data.filter(d => d.row >= 10 && d.row <= 50);
+ //  data = data.filter(d => d.row >= 10 && d.row <= 50);
 
     rows = d3.extent(data, d=> +d.row);
     columns = d3.extent(data,d => +d.column);
 
-    row_difference = rows[0]-1;
-    column_difference = columns[0]-1;
-    for(d in data) {
-        data[d].row -= row_difference;
-        data[d].column -= column_difference;
-    }
 
   return data;
 
