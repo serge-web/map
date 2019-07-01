@@ -405,10 +405,10 @@ function add_svg_colour(my_string,new_colour){
       //exit, remove
       my_group.exit().remove();
       //enter new groups
-      enter = my_group.enter().append("g").attr("class","unit_map_group").attr("transform",transform_str);
+      enter = my_group.enter().append("g").attr("class","unit_map_group");
       //append path and icon to new group
       enter.append("g").attr("class","unit_map_path_group");
-      enter.append("svg").attr("class","unit_map_icon");  //outline rect
+      enter.append("svg").attr("class","unit_map_icon");
       enter.append("circle").attr("class","unit_test_circle");  //outline rect
       //merge and remove
       my_group = my_group.merge(enter);
@@ -521,7 +521,7 @@ function select_unit_icon(){
           .attr("class","hex_svg")
           .attr("width",width)
           .attr("height",height)
-          .style("background-color","pink")
+          .style("background-color","transparent")
           .attr("transform","translate(0, " + (-(height-width)/2) + ") rotate(-90 0 0)")
           .call(zoom).on("dblclick.zoom", null);
 
@@ -559,8 +559,8 @@ function select_unit_icon(){
     var hex_width_max = width/((rows[1]*1.5)+3);
     // The maximum radius the hexagons can have to still fit the screen
     hexRadius = Math.min(hex_width_max,hex_height_max);
-    offset_y = -hexRadius;
-    offset_x = -((hexRadius * Math.sqrt(3))/2);
+    offset_y = -hexRadius + margin;
+    offset_x = -((hexRadius * Math.sqrt(3))/2) + margin;
 
     //Calculate the center positions of each hexagon
     points = [];
@@ -869,7 +869,8 @@ function reset_path(moves,current_path_id){
 
   d3.select("#map_path_group_" + current_unit).select(" #map_path_" + current_path_id)
       .attr("stroke-dasharray",moves[m].hex_speed + "," + moves[m].hex_speed)
-      .attr("d",new_path);
+      .attr("d",new_path)
+      .attr("transform",transform_str);
 }
 function check_adjacent(row,column){
 
